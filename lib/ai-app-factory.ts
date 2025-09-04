@@ -285,45 +285,26 @@ export class GoogleProvider implements AIProvider {
   
   async validateApiKey(apiKey: string): Promise<boolean> {
     try {
-      const { GoogleGenAI } = await import('@google/genai');
-      const genAI = new GoogleGenAI({ apiKey });
-      
-      // Use only valid Gemini models
-      const modelsToTest = [
-        'gemini-2.5-flash-image-preview',
-        'gemini-2.5-pro',
-        'gemini-2.5-flash',
-        'gemini-2.5-flash-lite',
-        'gemini-2.0-flash-preview-image-generation'
-      ];
-      
-      for (const modelName of modelsToTest) {
-        try {
-          console.log(`🔑 Testing API key with model: ${modelName}`);
-          await genAI.models.generateContent({
-            model: modelName,
-            contents: 'test'
-          });
-          console.log(`✅ API key valid with model: ${modelName}`);
-          return true; // Success with at least one model
-        } catch (modelError) {
-          const errorMsg = modelError instanceof Error ? modelError.message : 'Unknown error';
-          
-          // Quota exceeded = valid key, just no quota left
-          if (errorMsg.includes('[429]') || errorMsg.includes('quota')) {
-            console.log(`✅ API key valid with ${modelName} (quota exceeded)`);
-            return true;
-          }
-          
-          console.log(`❌ Model ${modelName} failed:`, errorMsg);
-          continue; // Try next model
+      // For security: Use server-side API route for validation
+      // This ensures environment variables are accessed server-side only
+      const response = await fetch('/api/validate-google-key', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
         }
-      }
+      });
       
-      console.error('❌ API key validation failed with all models');
-      return false; // All models failed
+      const result = await response.json();
+      
+      if (result.valid) {
+        console.log('✅ Google AI API key validation successful via server');
+        return true;
+      } else {
+        console.error('❌ Google AI API key validation failed:', result.error);
+        return false;
+      }
     } catch (error) {
-      console.error('❌ API key validation error:', error instanceof Error ? error.message : 'Unknown error');
+      console.error('GoogleProvider validateApiKey error:', error);
       return false;
     }
   }
@@ -339,33 +320,54 @@ export class GoogleProvider implements AIProvider {
   }
 
   async initialize(apiKey: string, model: string): Promise<void> {
-    // Reset internal state first, but keep apiKey and currentModel
+    // Reset internal state first
     this.resetInternalState();
     
     this.currentModel = model;
-    this.apiKey = apiKey;
     
-    // Set up model configuration with proper response modalities support
-    if (model === 'gemini-2.5-flash-image-preview' || model === 'gemini-2.0-flash-preview-image-generation') {
-      // Both models support multimodal responses (text + image) with proper modality configuration
-      this.chatModel = model; // Use the selected model directly for chat
-      this.imageModel = model; // Use the selected model for image generation
-    } else {
-      // Other models support text-only responses
-      this.chatModel = model;
-      this.imageModel = ''; // No image support for text-only models
+    // For security: Use server-side API route for initialization
+    // This ensures environment variables are accessed server-side only
+    try {
+      const response = await fetch('/api/initialize-google-provider', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ model })
+      });
+      
+      const result = await response.json();
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to initialize Google AI provider');
+      }
+      
+      console.log('✅ Google AI provider initialized successfully via server');
+      
+      // Set up model configuration with proper response modalities support
+      if (model === 'gemini-2.5-flash-image-preview' || model === 'gemini-2.0-flash-preview-image-generation') {
+        // Both models support multimodal responses (text + image) with proper modality configuration
+        this.chatModel = model; // Use the selected model directly for chat
+        this.imageModel = model; // Use the selected model for image generation
+      } else {
+        // Other models support text-only responses
+        this.chatModel = model;
+        this.imageModel = ''; // No image support for text-only models
+      }
+      
+      // For client-side operations, we'll create a lightweight initialization marker
+      // The actual SDK instances will be created server-side when needed
+      this.genAI = { initialized: true }; // Placeholder to indicate initialization
+      this.apiKey = 'server-managed'; // Placeholder to indicate server-side management
+      
+      // Initialize LangChain embeddings (this will need server-side handling too for security)
+      // For now, we'll mark it as initialized but handle actual embedding operations server-side
+      this.embeddings = { initialized: true }; // Placeholder
+      
+    } catch (error) {
+      console.error('GoogleProvider initialization error:', error);
+      throw error;
     }
-    
-    // Always initialize Google AI SDK for both chat and image generation
-    const { GoogleGenAI } = await import('@google/genai');
-    this.genAI = new GoogleGenAI({ apiKey });
-    
-    // Initialize LangChain for embeddings only
-    const { GoogleGenerativeAIEmbeddings } = await import('@langchain/google-genai');
-    this.embeddings = new GoogleGenerativeAIEmbeddings({
-      apiKey: apiKey,
-      modelName: 'embedding-001'
-    });
   }
   
   async chat(messages: Message[], context?: string[]): Promise<string> {
@@ -376,50 +378,27 @@ export class GoogleProvider implements AIProvider {
     console.log(`💬 GoogleProvider: Starting chat with model ${this.chatModel}`);
     
     try {
-      // Build the conversation for native Google SDK
-      let conversationHistory = '';
+      // Use server-side API route for chat to ensure security
+      const response = await fetch('/api/google-chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          messages,
+          context,
+          model: this.chatModel
+        })
+      });
       
-      if (context && context.length > 0) {
-        conversationHistory += `Context: ${context.join('\n\n')}\n\n`;
+      const result = await response.json();
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Chat request failed');
       }
       
-      const historyMessages = messages.slice(0, -1);
-      for (const msg of historyMessages) {
-        conversationHistory += `${msg.role === 'user' ? 'Human' : 'Assistant'}: ${msg.content}\n`;
-      }
-      
-      const currentMessage = messages[messages.length - 1];
-      const fullPrompt = conversationHistory + `Human: ${currentMessage.content}\nAssistant:`;
-      
-      // Use model-specific configuration for chat
-      console.log('💬 GoogleProvider: Calling generateContent for chat...');
-      
-      let result;
-      if (this.chatModel === 'gemini-2.0-flash-preview-image-generation') {
-        // 2.0 model REQUIRES response modalities configuration even for chat
-        const { Modality } = await import('@google/genai');
-        console.log('💬 Using 2.0 model with required response modalities [TEXT, IMAGE]');
-        result = await this.genAI.models.generateContent({
-          model: this.chatModel,
-          contents: fullPrompt,
-          config: {
-            responseModalities: [Modality.TEXT, Modality.IMAGE]
-          }
-        });
-      } else {
-        // 2.5 and other models work without response modalities config
-        console.log('💬 Using standard model with simplified configuration');
-        result = await this.genAI.models.generateContent({
-          model: this.chatModel,
-          contents: fullPrompt
-        });
-      }
-      
-      // Extract text from the response
-      const text = result.text;
-      
-      console.log(`✅ GoogleProvider: Chat completed successfully (${text.length} chars)`);
-      return text;
+      console.log(`✅ GoogleProvider: Chat completed successfully via server (${result.response.length} chars)`);
+      return result.response;
       
     } catch (error) {
       console.error('❌ GoogleProvider: Chat failed:', error);
@@ -432,129 +411,69 @@ export class GoogleProvider implements AIProvider {
       throw new Error(`Google AI stream not initialized for model ${this.currentModel}. Please reconnect.`);
     }
     
-    console.log(`🔄 GoogleProvider: Starting native SDK streaming with model ${this.chatModel}...`);
-    
-    // Build the conversation history for Google SDK format - do this outside try block for error handling
-    let conversationHistory = '';
-    
-    // Add context if provided
-    if (context && context.length > 0) {
-      conversationHistory += `Context: ${context.join('\n\n')}\n\n`;
-    }
-    
-    // Add message history (skip the last message as it will be the prompt)
-    const historyMessages = messages.slice(0, -1);
-    for (const msg of historyMessages) {
-      conversationHistory += `${msg.role === 'user' ? 'Human' : 'Assistant'}: ${msg.content}\n`;
-    }
-    
-    // Get the current user message
-    const currentMessage = messages[messages.length - 1];
-    const fullPrompt = conversationHistory + `Human: ${currentMessage.content}\nAssistant:`;
+    console.log(`🔄 GoogleProvider: Starting streaming with model ${this.chatModel}...`);
     
     try {
+      // Use server-side API route for streaming to ensure security
+      const response = await fetch('/api/google-stream', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          messages,
+          context,
+          model: this.chatModel
+        })
+      });
       
-      console.log('📤 GoogleProvider: Sending prompt to model...');
-      
-      // Use model-specific configuration for streaming
-      console.log('🔄 GoogleProvider: Calling generateContentStream for chat...');
-      
-      // Add timeout wrapper to prevent hanging
-      const STREAM_TIMEOUT_MS = 30000; // 30 seconds
-      
-      let streamPromise;
-      if (this.chatModel === 'gemini-2.0-flash-preview-image-generation') {
-        // 2.0 model REQUIRES response modalities configuration even for streaming
-        const { Modality } = await import('@google/genai');
-        console.log('🔄 Using 2.0 model with required response modalities [TEXT, IMAGE]');
-        streamPromise = this.genAI.models.generateContentStream({
-          model: this.chatModel,
-          contents: fullPrompt,
-          config: {
-            responseModalities: [Modality.TEXT, Modality.IMAGE]
-          }
-        });
-      } else {
-        // 2.5 and other models work without response modalities config
-        console.log('🔄 Using standard model with simplified configuration');
-        streamPromise = this.genAI.models.generateContentStream({
-          model: this.chatModel,
-          contents: fullPrompt
-        });
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Stream request failed with status ${response.status}`);
       }
       
-      let result;
+      // Handle streaming response
+      const reader = response.body?.getReader();
+      if (!reader) {
+        throw new Error('No response body reader available');
+      }
+      
+      const decoder = new TextDecoder();
+      let buffer = '';
+      
       try {
-        result = await Promise.race([
-          streamPromise,
-          new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('Stream timeout after 30 seconds')), STREAM_TIMEOUT_MS)
-          )
-        ]);
-      } catch (timeoutError) {
-        console.error('⏰ GoogleProvider: Stream timed out, falling back to non-streaming chat');
-        // Fallback to non-streaming response with model-specific configuration
-        let chatResult;
-        if (this.chatModel === 'gemini-2.0-flash-preview-image-generation') {
-          const { Modality } = await import('@google/genai');
-          chatResult = await this.genAI.models.generateContent({
-            model: this.chatModel,
-            contents: fullPrompt,
-            config: {
-              responseModalities: [Modality.TEXT, Modality.IMAGE]
+        while (true) {
+          const { done, value } = await reader.read();
+          
+          if (done) {
+            if (buffer.length > 0) {
+              yield buffer;
             }
-          });
-        } else {
-          chatResult = await this.genAI.models.generateContent({
-            model: this.chatModel,
-            contents: fullPrompt
-          });
+            break;
+          }
+          
+          const chunk = decoder.decode(value, { stream: true });
+          buffer += chunk;
+          
+          // Yield complete lines or chunks
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || ''; // Keep the last incomplete line
+          
+          for (const line of lines) {
+            if (line.trim()) {
+              yield line;
+            }
+          }
         }
-        const text = chatResult.text;
-        yield text;
-        return;
+      } finally {
+        reader.releaseLock();
       }
       
-      console.log('📡 GoogleProvider: Streaming response started...');
-      
-      let totalChunks = 0;
-      for await (const chunk of result) {
-        const chunkText = chunk.text;
-        if (chunkText) {
-          totalChunks++;
-          console.log(`📦 GoogleProvider: Chunk ${totalChunks} received (${chunkText.length} chars)`);
-          yield chunkText;
-        }
-      }
-      
-      console.log(`✅ GoogleProvider: Streaming completed successfully (${totalChunks} chunks)`);
+      console.log('✅ GoogleProvider: Streaming completed successfully via server');
       
     } catch (error) {
       console.error('❌ GoogleProvider: Stream failed:', error);
-      
-      // Check if it's a quota error (429)
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      if (errorMessage.includes('[429]') || errorMessage.includes('quota')) {
-        console.log('🔄 GoogleProvider: Quota exceeded, attempting fallback to gemini-1.5-flash...');
-        
-        // Try fallback to a different model if we hit quota limits
-        if (this.chatModel !== 'gemini-1.5-flash') {
-          try {
-            const fallbackModel = this.genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
-            const fallbackResult = await fallbackModel.generateContent(fullPrompt);
-            const response = fallbackResult.response;
-            const text = response.text();
-            
-            console.log('✅ GoogleProvider: Fallback successful, streaming single response');
-            yield text;
-            return;
-          } catch (fallbackError) {
-            console.error('❌ GoogleProvider: Fallback also failed:', fallbackError);
-          }
-        }
-      }
-      
-      throw new Error(`Google AI stream failed: ${errorMessage}`);
+      throw new Error(`Google AI stream failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
   
@@ -571,74 +490,38 @@ export class GoogleProvider implements AIProvider {
     console.log(`🎨 GoogleProvider: Starting image generation with model ${this.imageModel}`);
     
     try {
-      // Build content based on official Google example structure
-      let contents;
+      // Convert ImageData[] to uploaded images format for API
+      const uploadedImages = images?.map(img => ({
+        base64Data: img.base64Data,
+        mimeType: img.mimeType,
+        id: Date.now().toString() + Math.random().toString(),
+        file: { name: 'uploaded-image' }
+      })) || [];
       
-      if (!images || images.length === 0) {
-        // Simple text-to-image: pass prompt directly like official example
-        contents = prompt;
-      } else {
-        // Image-to-image: build content array with text and images
-        contents = [{ text: prompt }];
-        images.forEach(image => {
-          contents.push({
-            inlineData: {
-              mimeType: image.mimeType,
-              data: image.base64Data
-            }
-          });
-        });
-      }
-      
-      // Use model-specific configuration based on requirements
-      console.log('🎨 GoogleProvider: Calling generateContent for image generation...');
-      
-      let result;
-      if (this.imageModel === 'gemini-2.0-flash-preview-image-generation') {
-        // 2.0 model REQUIRES response modalities configuration
-        const { Modality } = await import('@google/genai');
-        console.log('🎨 Using 2.0 model with required response modalities [TEXT, IMAGE]');
-        result = await this.genAI.models.generateContent({
+      // Use server-side API route for image generation to ensure security
+      const response = await fetch('/api/google-generate-image', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          prompt,
           model: this.imageModel,
-          contents: contents,
-          config: {
-            responseModalities: [Modality.TEXT, Modality.IMAGE]
-          }
-        });
-      } else {
-        // 2.5 model works without response modalities config (per official example)
-        console.log('🎨 Using 2.5 model with simplified configuration');
-        result = await this.genAI.models.generateContent({
-          model: this.imageModel,
-          contents: contents
-        });
+          uploadedImages
+        })
+      });
+      
+      const result = await response.json();
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Image generation request failed');
       }
       
-      // Extract image data from the response using correct @google/genai structure
-      console.log('🔍 GoogleProvider: Inspecting response structure for image data...');
-      console.log('Response candidates:', result.candidates?.length);
+      console.log('✅ GoogleProvider: Image generated successfully via server');
+      return result.imageData;
       
-      if (result.candidates && result.candidates.length > 0) {
-        const candidate = result.candidates[0];
-        console.log('Content parts:', candidate.content?.parts?.length);
-        
-        if (candidate.content && candidate.content.parts) {
-          for (let i = 0; i < candidate.content.parts.length; i++) {
-            const part = candidate.content.parts[i];
-            console.log(`Part ${i}:`, { hasText: !!part.text, hasInlineData: !!part.inlineData });
-            
-            if (part.inlineData && part.inlineData.data) {
-              console.log('✅ GoogleProvider: Found image data in response');
-              return part.inlineData.data; // Return base64 image data
-            }
-          }
-        }
-      }
-      
-      console.error('❌ GoogleProvider: No image data found in response structure');
-      console.error('Response structure:', JSON.stringify(result, null, 2));
-      throw new Error('No image data received from the model');
     } catch (error) {
+      console.error('❌ GoogleProvider: Image generation failed:', error);
       throw new Error(`Image generation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }

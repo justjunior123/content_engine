@@ -12,13 +12,11 @@ export default function AIAppFactoryUI() {
   const [currentInput, setCurrentInput] = useState('');
   const [isLoading, setIsLoading] = useState(false); // For provider connection
   const [isProcessingMessage, setIsProcessingMessage] = useState(false); // For chat/image processing
-  const [selectedProvider, setSelectedProvider] = useState('');
-  const [apiKey, setApiKey] = useState('');
-  const [selectedModel, setSelectedModel] = useState('');
+  const [selectedProvider, setSelectedProvider] = useState('google'); // Default to google since it's env-only
+  const [selectedModel, setSelectedModel] = useState('gemini-2.5-flash-image-preview'); // Default model
   const [isConnected, setIsConnected] = useState(false);
   const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
   const [chatMode, setChatMode] = useState<'chat' | 'image'>('chat');
-  const [apiKeySource, setApiKeySource] = useState<'manual' | 'environment' | null>(null);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
@@ -41,34 +39,7 @@ export default function AIAppFactoryUI() {
   
   // Note: Removed forced image mode logic - both models now support chat and image modes
 
-  // Auto-load Google API key from environment variables
-  useEffect(() => {
-    async function loadGoogleApiKey() {
-      try {
-        console.log('🔑 Attempting to load Google API key from environment...');
-        const response = await fetch('/api/google-key');
-        const data = await response.json();
-        
-        if (data.hasKey && data.key) {
-          console.log('✅ Google API key loaded from environment');
-          setApiKey(data.key);
-          setApiKeySource('environment');
-          setSelectedProvider('google');
-          // Auto-select the first available model
-          setSelectedModel('gemini-2.5-flash-image-preview');
-          toast.success('Google API key loaded from environment');
-        } else {
-          console.log('ℹ️ No Google API key found in environment, using manual input');
-          setApiKeySource('manual');
-        }
-      } catch (error) {
-        console.error('❌ Failed to load Google API key from environment:', error);
-        setApiKeySource('manual');
-      }
-    }
-    
-    loadGoogleApiKey();
-  }, []); // Run once on component mount
+  // Environment-only setup - no client-side key loading needed
 
   // Reset chat mode and clear images when switching models (passive cleanup for non-manual switches)
   useEffect(() => {
@@ -99,13 +70,14 @@ export default function AIAppFactoryUI() {
   }, [messages]);
   
   const handleProviderSwitch = async () => {
-    if (!selectedProvider || !apiKey || !selectedModel) {
-      toast.error('Please select provider, enter API key, and choose model');
+    if (!selectedProvider || !selectedModel) {
+      toast.error('Please select provider and choose model');
       return;
     }
     
     setIsLoading(true);
-    const result = await appFactory.switchProvider(selectedProvider, apiKey, selectedModel);
+    // API key will be read from environment variables server-side
+    const result = await appFactory.switchProvider(selectedProvider, '', selectedModel);
     
     if (result.success) {
       setIsConnected(true);
@@ -132,12 +104,13 @@ export default function AIAppFactoryUI() {
     setSelectedModel(newModel);
     
     // If already connected, automatically reconnect to new model
-    if (isConnected && selectedProvider && apiKey) {
+    if (isConnected && selectedProvider) {
       setIsLoading(true);
       toast(`🔄 Switching to ${newModel}...`);
       
       try {
-        const result = await appFactory.switchProvider(selectedProvider, apiKey, newModel);
+        // API key will be read from environment variables server-side
+        const result = await appFactory.switchProvider(selectedProvider, '', newModel);
         
         if (result.success) {
           setIsConnected(true);
@@ -371,10 +344,6 @@ export default function AIAppFactoryUI() {
         appFactory={appFactory}
         selectedProvider={selectedProvider}
         setSelectedProvider={setSelectedProvider}
-        apiKey={apiKey}
-        setApiKey={setApiKey}
-        apiKeySource={apiKeySource}
-        setApiKeySource={setApiKeySource}
         selectedModel={selectedModel}
         setSelectedModel={handleModelChange}
         isConnected={isConnected}
@@ -388,7 +357,7 @@ export default function AIAppFactoryUI() {
         {/* Header */}
         <div className="bg-white border-b border-gray-200 p-4">
           <h1 className="text-2xl font-bold text-gray-900">AI App Factory</h1>
-          <p className="text-gray-600">Basic RAG with Provider Switching (OpenAI, Anthropic, Google AI, Grok)</p>
+          <p className="text-gray-600">🔒 Secure RAG with Environment-Only Configuration (Google AI)</p>
           {isConnected && (
             <div className="mt-2">
               <div className="text-sm text-green-600">
@@ -453,7 +422,8 @@ export default function AIAppFactoryUI() {
           {messages.length === 0 ? (
             <div className="text-center text-gray-500 mt-8">
               <h3 className="text-lg font-medium mb-2">Welcome to AI App Factory!</h3>
-              <p>1. Select an AI provider (OpenAI, Anthropic, Google AI, or Grok) and enter your API key</p>
+              <p>🔒 Secure environment-only configuration</p>
+              <p>1. Google AI provider is pre-configured with environment variables</p>
               <p>2. Upload documents (optional)</p>
               <p>3. Start chatting!</p>
             </div>
@@ -532,10 +502,6 @@ interface SidebarProps {
   appFactory: AIAppFactory;
   selectedProvider: string;
   setSelectedProvider: (provider: string) => void;
-  apiKey: string;
-  setApiKey: (key: string) => void;
-  apiKeySource: 'manual' | 'environment' | null;
-  setApiKeySource: (source: 'manual' | 'environment' | null) => void;
   selectedModel: string;
   setSelectedModel: (model: string) => void | Promise<void>;
   isConnected: boolean;
@@ -548,10 +514,6 @@ function Sidebar({
   appFactory,
   selectedProvider,
   setSelectedProvider,
-  apiKey,
-  setApiKey,
-  apiKeySource,
-  setApiKeySource,
   selectedModel,
   setSelectedModel,
   isConnected,
@@ -588,7 +550,6 @@ function Sidebar({
   const handleProviderChange = (provider: string) => {
     setSelectedProvider(provider);
     setSelectedModel(providers[provider as keyof typeof providers]?.models[0] || '');
-    setApiKey('');
   };
   
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -633,76 +594,49 @@ function Sidebar({
       </div>
       
       <div className="flex-1 overflow-y-auto p-4 space-y-6">
-        {/* Provider Selection */}
+        {/* Provider Selection - Environment Only */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             🤖 AI Provider
           </label>
+          <div className="w-full border border-green-300 rounded-lg px-3 py-2 bg-green-50 text-green-800 font-medium">
+            🔒 Google AI (Environment)
+          </div>
+          <p className="text-xs text-green-600 mt-1">
+            Provider locked to Google AI for enhanced security
+          </p>
+        </div>
+        
+        {/* Model Selection */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            🧠 Model
+          </label>
           <select
-            value={selectedProvider}
-            onChange={(e) => handleProviderChange(e.target.value)}
+            value={selectedModel}
+            onChange={(e) => setSelectedModel(e.target.value)}
             className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
-            <option value="">Select Provider</option>
-            {Object.entries(providers).map(([key, provider]) => (
-              <option key={key} value={key}>{provider.name}</option>
+            {providers.google.models.map(model => (
+              <option key={model} value={model}>{model}</option>
             ))}
           </select>
         </div>
         
-        {/* Model Selection */}
-        {selectedProvider && (
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              🧠 Model
-            </label>
-            <select
-              value={selectedModel}
-              onChange={(e) => setSelectedModel(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              {providers[selectedProvider as keyof typeof providers]?.models.map(model => (
-                <option key={model} value={model}>{model}</option>
-              ))}
-            </select>
-          </div>
-        )}
-        
-        {/* API Key Input */}
-        {selectedProvider && (
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              🔑 API Key
-              {apiKeySource === 'environment' && (
-                <span className="ml-2 text-xs text-green-600 font-normal">✅ Loaded from .env</span>
-              )}
-            </label>
-            <input
-              type="password"
-              value={apiKey}
-              onChange={(e) => {
-                setApiKey(e.target.value);
-                setApiKeySource('manual');
-              }}
-              placeholder={providers[selectedProvider as keyof typeof providers]?.keyPlaceholder}
-              className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                apiKeySource === 'environment' 
-                  ? 'border-green-300 bg-green-50' 
-                  : 'border-gray-300'
-              }`}
-              disabled={apiKeySource === 'environment'}
-            />
-            <p className="text-xs text-gray-500 mt-1">
-              {apiKeySource === 'environment' 
-                ? 'Google API key loaded from environment variables (.env file)' 
-                : 'Keys are stored in memory only and never saved'
-              }
+        {/* Environment-Only Configuration */}
+        <div>
+          <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+            <div className="flex items-center">
+              <span className="text-green-700 font-medium text-sm">🔑 Environment Configuration</span>
+            </div>
+            <p className="text-xs text-green-600 mt-1">
+              API keys are loaded from environment variables (.env file) for enhanced security
             </p>
           </div>
-        )}
+        </div>
         
         {/* Connect Button */}
-        {selectedProvider && apiKey && selectedModel && (
+        {selectedModel && (
           <button
             onClick={onProviderSwitch}
             disabled={isLoading}
