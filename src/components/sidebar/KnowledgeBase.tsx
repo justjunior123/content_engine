@@ -1,10 +1,10 @@
 import React, { useState, useRef } from 'react';
 import { toast } from 'react-hot-toast';
 import { readFileContent } from '@/utils/file-helpers';
-import { AIAppFactory } from '@/lib/ai-app-factory';
+import { ContentEngine } from '@/lib/content-engine';
 
 interface KnowledgeBaseProps {
-  appFactory: AIAppFactory;
+  appFactory: ContentEngine;
   uploadedFiles: string[];
   setUploadedFiles: React.Dispatch<React.SetStateAction<string[]>>;
 }

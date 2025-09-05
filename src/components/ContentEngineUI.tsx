@@ -1,10 +1,10 @@
-// React UI Components for AI App Factory
+// React UI Components for Content Engine
 // Clean separated component architecture with sidebar + chat
 // Streamlit-inspired interface with modular design
 
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
-import { AIAppFactory } from '@/lib/ai-app-factory';
+import { ContentEngine } from '@/lib/content-engine';
 import { Message, UploadedImage } from '@/types/chat.types';
 import { fileToBase64 } from '@/utils/file-helpers';
 import { Sidebar } from '@/components/sidebar';
@@ -14,11 +14,11 @@ import { ImageUploadZone } from '@/components/image';
 import { ErrorBoundary } from '@/components/ui';
 
 // Main App Component
-export default function AIAppFactoryUI() {
+export default function ContentEngineUI() {
   // =====================================
   // STATE MANAGEMENT
   // =====================================
-  const [appFactory] = useState(() => new AIAppFactory());
+  const [appFactory] = useState(() => new ContentEngine());
   const [messages, setMessages] = useState<Message[]>([]);
   const [currentInput, setCurrentInput] = useState('');
   const [isLoading, setIsLoading] = useState(false); // For provider connection

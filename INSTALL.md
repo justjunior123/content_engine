@@ -33,9 +33,9 @@ Then open: http://localhost:3000
 ## File Structure
 
 ```
-ai_app_factory/
-├── lib/ai-app-factory.ts       # Core provider system
-├── components/AIAppFactoryUI.tsx # React interface  
+content_engine/
+├── lib/content-engine.ts       # Core provider system
+├── components/ContentEngineUI.tsx # React interface  
 ├── pages/index.tsx             # Main app page
 ├── styles/globals.css          # Tailwind styles
 └── README.md                   # Full documentation

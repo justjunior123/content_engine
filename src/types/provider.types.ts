@@ -1,5 +1,5 @@
 // AI Provider related types
-import { AIAppFactory } from '@/lib/ai-app-factory';
+import { ContentEngine } from '@/lib/content-engine';
 
 export interface ProviderInfo {
   name: string;
@@ -8,7 +8,7 @@ export interface ProviderInfo {
 }
 
 export interface SidebarProps {
-  appFactory: AIAppFactory;
+  appFactory: ContentEngine;
   selectedProvider: string;
   setSelectedProvider: (provider: string) => void;
   selectedModel: string;

@@ -1,4 +1,4 @@
-// AI App Factory - Core Provider System
+// Content Engine - Core Provider System
 // Real-time AI provider switching with RAG capabilities
 
 export interface ImageData {
@@ -678,7 +678,7 @@ export class KnowledgeBase {
 }
 
 // Main Application Class
-export class AIAppFactory {
+export class ContentEngine {
   private providerManager: ProviderManager;
   private knowledgeBase: KnowledgeBase;
   private messages: Message[] = [];

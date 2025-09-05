@@ -1,10 +1,10 @@
 import { Toaster } from 'react-hot-toast';
-import AIAppFactoryUI from '@/components/AIAppFactoryUI';
+import ContentEngineUI from '@/components/ContentEngineUI';
 
 export default function Home() {
   return (
     <>
-      <AIAppFactoryUI />
+      <ContentEngineUI />
       <Toaster position="top-right" />
     </>
   );
