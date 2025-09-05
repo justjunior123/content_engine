@@ -1,4 +1,4 @@
-# 🚀 AI App Factory - Installation Guide
+# 🚀 Content Engine - Installation Guide
 
 ## Quick Start (3 Commands)
 

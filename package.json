@@ -1,7 +1,7 @@
 {
   "name": "content-engine",
   "version": "1.0.0",
-  "description": "Foundational RAG application with real-time AI provider switching",
+  "description": "Content Engine: Advanced AI-powered content automation platform",
   "private": true,
   "scripts": {
     "dev": "NEXT_TELEMETRY_DISABLED=1 next dev",

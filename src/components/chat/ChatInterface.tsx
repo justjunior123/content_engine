@@ -50,7 +50,7 @@ export const ChatInterface = React.memo(function ChatInterface({
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.length === 0 ? (
           <div className="text-center text-gray-500 mt-8">
-            <h3 className="text-lg font-medium mb-2">Welcome to AI App Factory!</h3>
+            <h3 className="text-lg font-medium mb-2">Welcome to Content Engine!</h3>
             <p>🔒 Secure environment-only configuration</p>
             <p>1. Google AI provider is pre-configured with environment variables</p>
             <p>2. Upload documents (optional)</p>

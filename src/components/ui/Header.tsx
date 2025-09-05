@@ -23,7 +23,7 @@ export const Header = React.memo(function Header({
 }: HeaderProps) {
   return (
     <div className="bg-white border-b border-gray-200 p-4">
-      <h1 className="text-2xl font-bold text-gray-900">AI App Factory</h1>
+      <h1 className="text-2xl font-bold text-gray-900">Content Engine</h1>
       <p className="text-gray-600">🔒 Secure RAG with Environment-Only Configuration (Google AI)</p>
       {isConnected && (
         <div className="mt-2">
