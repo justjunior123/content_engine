@@ -1,5 +1,5 @@
 {
-  "name": "ai-app-factory",
+  "name": "content-engine",
   "version": "1.0.0",
   "description": "Foundational RAG application with real-time AI provider switching",
   "private": true,

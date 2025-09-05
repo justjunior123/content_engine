@@ -19,7 +19,7 @@ interface ChatInterfaceProps {
   onKeyPress: (e: React.KeyboardEvent) => void;
 }
 
-export function ChatInterface({
+export const ChatInterface = React.memo(function ChatInterface({
   messages,
   currentInput,
   setCurrentInput,
@@ -78,4 +78,4 @@ export function ChatInterface({
       />
     </div>
   );
-}
+});

@@ -1,0 +1,1 @@
+export { ImageUploadZone } from './ImageUploadZone';

@@ -11,7 +11,7 @@ interface HeaderProps {
   isProcessingMessage: boolean;
 }
 
-export function Header({
+export const Header = React.memo(function Header({
   isConnected,
   selectedProvider,
   selectedModel,
@@ -83,4 +83,4 @@ export function Header({
       </div>
     </div>
   );
-}
+});
