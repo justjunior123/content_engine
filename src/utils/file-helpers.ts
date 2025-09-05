@@ -1,4 +1,4 @@
-// File utility functions for AI App Factory
+// File utility functions for Content Engine
 
 export const fileToBase64 = (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
