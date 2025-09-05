@@ -20,46 +20,85 @@ export default async function handler(req, res) {
     const { GoogleGenAI } = await import('@google/genai');
     const genAI = new GoogleGenAI({ apiKey });
     
-    // Use only valid Gemini models for testing
+    // Smart fallback hierarchy - start with most reliable, quota-friendly models
     const modelsToTest = [
-      'gemini-2.5-flash-image-preview',
-      'gemini-2.5-flash',
-      'gemini-2.5-pro'
+      'gemini-2.5-flash-lite',    // Most reliable, lowest quota usage
+      'gemini-2.5-flash',         // Fallback option
+      'gemini-2.5-pro'           // Last resort
     ];
     
-    // Try to list models or make a simple call to verify the key works
-    try {
-      // Simple validation - try to generate a minimal response
-      const result = await genAI.models.generateContent({
-        model: modelsToTest[0], // Use the first available model
-        contents: 'Hello' // Minimal test prompt
-      });
+    console.log('🔍 Starting Google AI API key validation with smart fallback...');
+    
+    // Try each model in cascade until one works or we get a real auth error
+    let lastError = null;
+    let quotaErrors = [];
+    
+    for (let i = 0; i < modelsToTest.length; i++) {
+      const modelName = modelsToTest[i];
+      console.log(`🔄 Testing validation with model: ${modelName} (attempt ${i + 1}/${modelsToTest.length})`);
       
-      // If we get here without throwing, the key is valid
-      return res.status(200).json({ 
-        valid: true,
-        message: 'API key validation successful'
-      });
-      
-    } catch (apiError) {
-      console.error('Google AI API validation failed:', apiError);
-      
-      // Check if it's a quota exceeded error - this means the key is valid but quota is reached
-      if (apiError.status === 429 || 
-          (apiError.message && apiError.message.includes('quota')) ||
-          (apiError.message && apiError.message.includes('429'))) {
-        console.log('✅ API key is valid (quota exceeded)');
+      try {
+        // Simple validation - try to generate a minimal response
+        const result = await genAI.models.generateContent({
+          model: modelName,
+          contents: 'Hi' // Minimal test prompt to minimize quota usage
+        });
+        
+        // If we get here without throwing, the key is valid
+        console.log(`✅ Google AI API key validation successful using model: ${modelName}`);
         return res.status(200).json({ 
           valid: true,
-          message: 'API key validation successful (quota exceeded indicates valid key)'
+          message: `API key validation successful using ${modelName}`,
+          testedModel: modelName
         });
+        
+      } catch (apiError) {
+        console.log(`⚠️ Model ${modelName} failed: ${apiError.message}`);
+        lastError = apiError;
+        
+        // Check if it's a quota exceeded error
+        const isQuotaError = apiError.status === 429 || 
+                           (apiError.message && (
+                             apiError.message.includes('quota') ||
+                             apiError.message.includes('429') ||
+                             apiError.message.includes('RESOURCE_EXHAUSTED')
+                           ));
+        
+        if (isQuotaError) {
+          quotaErrors.push({ model: modelName, error: apiError.message });
+          console.log(`⏭️ Quota exceeded for ${modelName}, trying next model...`);
+          continue; // Try next model
+        } else {
+          // Real auth/API error - no point trying other models
+          console.error(`❌ Authentication/API error with ${modelName}:`, apiError);
+          return res.status(400).json({ 
+            valid: false, 
+            error: `Invalid Google AI API key or API access denied (tested with ${modelName})`,
+            details: apiError.message
+          });
+        }
       }
-      
-      return res.status(400).json({ 
-        valid: false, 
-        error: 'Invalid Google AI API key or API access denied' 
+    }
+    
+    // If we get here, all models failed with quota errors
+    // This actually means the API key is valid, just quota exhausted
+    if (quotaErrors.length > 0) {
+      console.log('✅ API key is valid - all models failed due to quota limits only');
+      return res.status(200).json({ 
+        valid: true,
+        message: 'API key validation successful (quota exceeded on all test models indicates valid key)',
+        quotaStatus: 'exhausted',
+        testedModels: quotaErrors.map(e => e.model)
       });
     }
+    
+    // Final fallback - if we have a lastError but no quota errors, return it
+    console.error('❌ All validation attempts failed:', lastError);
+    return res.status(400).json({ 
+      valid: false, 
+      error: 'Google AI API key validation failed on all test models',
+      details: lastError?.message || 'Unknown error'
+    });
     
   } catch (error) {
     console.error('Key validation error:', error);
