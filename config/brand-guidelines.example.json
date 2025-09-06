@@ -1,0 +1,120 @@
+{
+  "brandName": "Adobe Creative Suite",
+  "version": "2025.1",
+  "lastUpdated": "2025-01-15",
+  "description": "Brand guidelines for Adobe Creative Automation Pipeline - Claude MCP moderation rules",
+  
+  "brandColors": {
+    "primary": {
+      "adobe-red": "#FF0000",
+      "adobe-blue": "#0066CC"
+    },
+    "secondary": {
+      "white": "#FFFFFF",
+      "black": "#000000",
+      "gray-dark": "#2D2D2D",
+      "gray-light": "#F5F5F5"
+    },
+    "prohibited": [
+      "#00FF00",
+      "#FF00FF",
+      "#FFFF00"
+    ]
+  },
+  
+  "typography": {
+    "primary": ["Adobe Clean", "Source Sans Pro"],
+    "secondary": ["Roboto", "Open Sans"],
+    "prohibited": ["Comic Sans MS", "Papyrus", "Impact"]
+  },
+  
+  "logoRequirements": {
+    "required": true,
+    "placement": ["top-right", "bottom-left", "center-bottom"],
+    "minSize": "100px",
+    "clearSpace": "20px",
+    "acceptableFormats": [".png", ".svg", ".pdf"]
+  },
+  
+  "messaging": {
+    "tone": "professional yet inspiring",
+    "voiceAttributes": ["innovative", "accessible", "creative", "trustworthy"],
+    "prohibitedWords": [
+      "cheap",
+      "basic",
+      "amateur",
+      "competitor mentions",
+      "profanity"
+    ],
+    "requiredElements": [
+      "© Adobe Systems",
+      "product logo",
+      "adobe.com reference"
+    ]
+  },
+  
+  "contentGuidelines": {
+    "imageRequirements": {
+      "minResolution": "1920x1080",
+      "aspectRatios": ["1:1", "9:16", "16:9"],
+      "fileFormats": [".png", ".jpg", ".jpeg"]
+    },
+    "textOverlay": {
+      "maxLines": 3,
+      "fontSizeMin": "24px",
+      "contrast": "WCAG AA compliant"
+    },
+    "prohibitedContent": [
+      "competitor logos",
+      "outdated version screenshots",
+      "unauthorized imagery",
+      "non-inclusive content"
+    ]
+  },
+  
+  "complianceScoring": {
+    "brandColors": {
+      "weight": 25,
+      "passing": 80
+    },
+    "typography": {
+      "weight": 20,
+      "passing": 85
+    },
+    "logoPresence": {
+      "weight": 30,
+      "passing": 100
+    },
+    "messaging": {
+      "weight": 25,
+      "passing": 75
+    },
+    "overallPassing": 80
+  },
+  
+  "regionalAdaptations": {
+    "northAmerica": {
+      "currency": "USD",
+      "dateFormat": "MM/DD/YYYY",
+      "language": "en-US"
+    },
+    "europe": {
+      "currency": "EUR",
+      "dateFormat": "DD/MM/YYYY", 
+      "language": "en-GB",
+      "gdprCompliance": true
+    },
+    "asia": {
+      "currency": "JPY",
+      "dateFormat": "YYYY/MM/DD",
+      "language": "ja-JP",
+      "culturalSensitivity": "high"
+    }
+  },
+  
+  "stakeholderApproval": {
+    "required": ["Creative Director", "Brand Manager", "Legal"],
+    "optional": ["Product Manager", "Regional Lead"],
+    "approvalThreshold": "2/3 required stakeholders"
+  }
+}

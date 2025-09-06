@@ -1,0 +1,125 @@
+{
+  "campaignMessageTemplates": {
+    "description": "Standardized message templates for Adobe Creative Automation Pipeline",
+    "version": "1.0",
+    
+    "productCategories": {
+      "software": {
+        "headline": "Unleash your creativity with {productName}",
+        "subtext": "Professional tools for {targetAudience}",
+        "cta": "Download free trial",
+        "maxLength": 150
+      },
+      "creative_cloud": {
+        "headline": "Create without limits",
+        "subtext": "Join millions using {productName} for {keyFeature}",
+        "cta": "Start creating today",
+        "maxLength": 140
+      },
+      "mobile_app": {
+        "headline": "{keyFeature} on the go",
+        "subtext": "Professional {category} in your pocket",
+        "cta": "Download now",
+        "maxLength": 120
+      }
+    },
+    
+    "regionalTemplates": {
+      "northAmerica": {
+        "currency": "USD",
+        "pricingFormat": "${price}/month",
+        "culturalTone": "direct and benefit-focused",
+        "commonPhrases": ["cutting-edge", "innovative", "professional-grade"]
+      },
+      "europe": {
+        "currency": "EUR",
+        "pricingFormat": "€{price}/month", 
+        "culturalTone": "sophisticated and quality-focused",
+        "commonPhrases": ["premium quality", "craftsmanship", "precision"]
+      },
+      "asia": {
+        "currency": "JPY",
+        "pricingFormat": "¥{price}/month",
+        "culturalTone": "respectful and community-focused",
+        "commonPhrases": ["harmony", "excellence", "innovation"]
+      }
+    },
+    
+    "audienceTemplates": {
+      "creative_professionals": {
+        "tone": "expert and sophisticated",
+        "vocabulary": ["workflow", "precision", "professional", "industry-standard"],
+        "painPoints": ["deadline pressure", "client expectations", "quality standards"]
+      },
+      "content_creators": {
+        "tone": "inspiring and accessible", 
+        "vocabulary": ["create", "express", "share", "community", "viral"],
+        "painPoints": ["engagement", "consistency", "standing out"]
+      },
+      "students": {
+        "tone": "encouraging and educational",
+        "vocabulary": ["learn", "grow", "develop", "affordable", "future"],
+        "painPoints": ["budget constraints", "learning curve", "career preparation"]
+      },
+      "small_business": {
+        "tone": "practical and ROI-focused",
+        "vocabulary": ["efficient", "cost-effective", "growth", "competitive edge"],
+        "painPoints": ["limited resources", "time constraints", "market competition"]
+      }
+    },
+    
+    "complianceTemplates": {
+      "legal_disclaimers": {
+        "pricing": "Pricing shown in {currency}. Taxes may apply.",
+        "availability": "Available in select regions. Terms apply.", 
+        "trial": "Free trial includes limited features. Credit card required.",
+        "subscription": "Subscription auto-renews. Cancel anytime."
+      },
+      "accessibility": {
+        "altText": "Adobe {productName} - {keyFeature} for {targetAudience}",
+        "screenReader": "Image shows {productDescription}",
+        "colorContrast": "Ensure WCAG AA compliance for all text overlays"
+      }
+    },
+    
+    "socialMediaFormats": {
+      "instagram_square": {
+        "dimensions": "1080x1080",
+        "textLimit": 125,
+        "hashtagLimit": 10,
+        "template": "{headline}\n\n{subtext}\n\n{cta}\n\n{hashtags}"
+      },
+      "instagram_story": {
+        "dimensions": "1080x1920", 
+        "textLimit": 100,
+        "template": "{headline}\n{subtext}\n\n{cta}"
+      },
+      "facebook_landscape": {
+        "dimensions": "1200x630",
+        "textLimit": 150,
+        "template": "{headline}\n\n{subtext}\n\n{cta} | {brand}"
+      },
+      "linkedin_post": {
+        "dimensions": "1200x627",
+        "textLimit": 200,
+        "tone": "professional",
+        "template": "{headline}\n\n{subtext}\n\n{cta}\n\n#Adobe #{productCategory}"
+      }
+    }
+  },
+  
+  "stakeholderNotifications": {
+    "campaignLaunched": {
+      "subject": "[Adobe Campaign] {campaignId} Assets Generated",
+      "body": "New campaign assets have been generated and are ready for review.\n\nCampaign: {campaignId}\nProducts: {productCount} products\nAssets: {assetCount} variations\nCompliance Score: {complianceScore}%\n\nReview assets at: {reviewUrl}"
+    },
+    "complianceFlag": {
+      "subject": "[URGENT] Campaign Compliance Issue - {campaignId}",
+      "body": "Compliance issues detected in campaign {campaignId}:\n\n{issueDetails}\n\nImmediate review required before campaign launch.\n\nReview at: {reviewUrl}"
+    },
+    "approvalRequired": {
+      "subject": "[Approval Needed] {campaignId} - Ready for Launch",
+      "body": "Campaign {campaignId} has passed all compliance checks and is ready for stakeholder approval.\n\nApproval needed from:\n{pendingApprovers}\n\nApprove at: {approvalUrl}"
+    }
+  }
+}

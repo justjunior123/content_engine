@@ -297,3 +297,5 @@ storybook-static
 !templates/
 !docs/README.md
 !config/brand-guidelines.example.json
+!config/templates/campaign-messages.example.json
+!input/assets/*/README.md
