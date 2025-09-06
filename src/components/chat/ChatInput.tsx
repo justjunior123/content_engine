@@ -7,7 +7,7 @@ interface ChatInputProps {
   isConnected: boolean;
   isProcessingMessage: boolean;
   isImageModel: boolean;
-  chatMode: 'chat' | 'image';
+  chatMode: 'chat' | 'image' | 'campaign';
   uploadedImages: UploadedImage[];
   onSendMessage: () => void;
   onGenerateImage: () => void;
