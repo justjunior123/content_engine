@@ -6,7 +6,10 @@ import React, { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
 import { ContentEngine } from '@/lib/content-engine';
 import { Message, UploadedImage } from '@/types/chat.types';
+import { CampaignBrief, CampaignPrompt, CampaignProgress } from '@/types/campaign.types';
 import { fileToBase64 } from '@/utils/file-helpers';
+import { generateCampaignPrompts, generatePromptSummary, validateAndEnhanceBrief } from '@/lib/campaign-prompt-generator';
+import { CampaignResult } from '@/types/campaign.types';
 import { Sidebar } from '@/components/sidebar';
 import { Header } from '@/components/ui';
 import { ChatInterface } from '@/components/chat';
@@ -27,7 +30,18 @@ export default function ContentEngineUI() {
   const [selectedModel, setSelectedModel] = useState('gemini-2.5-flash-image-preview'); // Default model
   const [isConnected, setIsConnected] = useState(false);
   const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
-  const [chatMode, setChatMode] = useState<'chat' | 'image'>('chat');
+  const [chatMode, setChatMode] = useState<'chat' | 'image' | 'campaign'>('chat');
+  
+  // Campaign-specific state
+  const [campaignBrief, setCampaignBrief] = useState<CampaignBrief | null>(null);
+  const [campaignPrompts, setCampaignPrompts] = useState<CampaignPrompt[]>([]);
+  const [campaignProgress, setCampaignProgress] = useState<CampaignProgress>({
+    current: 0,
+    total: 0,
+    currentProduct: '',
+    currentFormat: '',
+    status: 'generating'
+  });
   
   // =====================================
   // COMPUTED VALUES
@@ -37,6 +51,9 @@ export default function ContentEngineUI() {
   
   // Both image models now support chat and image generation with proper response modalities
   const isImageOnlyModel = false; // No models are image-only anymore
+  
+  // Campaign mode is available when connected to image model
+  const isCampaignModeAvailable = isImageModel && isConnected;
   
   // =====================================
   // EFFECTS AND LIFECYCLE
@@ -71,6 +88,23 @@ export default function ContentEngineUI() {
       clearAllImages();
     }
   }, [chatMode]);
+  
+  // Reset campaign data when switching away from campaign mode or disconnecting
+  useEffect(() => {
+    if (chatMode !== 'campaign' || !isCampaignModeAvailable) {
+      if (campaignBrief || campaignPrompts.length > 0) {
+        setCampaignBrief(null);
+        setCampaignPrompts([]);
+        setCampaignProgress({
+          current: 0,
+          total: 0,
+          currentProduct: '',
+          currentFormat: '',
+          status: 'generating'
+        });
+      }
+    }
+  }, [chatMode, isCampaignModeAvailable]);
   
   
   // =====================================
@@ -324,6 +358,241 @@ export default function ContentEngineUI() {
     setCurrentInput(prompt);
   };
   
+  // =====================================
+  // CAMPAIGN HANDLERS
+  // =====================================
+  
+  const validateCampaignBrief = (data: any): CampaignBrief => {
+    if (!data.campaignId || typeof data.campaignId !== 'string') {
+      throw new Error('Campaign ID is required and must be a string');
+    }
+    
+    if (!Array.isArray(data.products) || data.products.length === 0) {
+      throw new Error('Products array is required and must not be empty');
+    }
+    
+    for (const product of data.products) {
+      if (!product.name || !product.category || !Array.isArray(product.keyFeatures)) {
+        throw new Error('Each product must have name, category, and keyFeatures array');
+      }
+    }
+    
+    if (!data.targetRegion || !data.targetAudience || !data.campaignMessage) {
+      throw new Error('targetRegion, targetAudience, and campaignMessage are required');
+    }
+    
+    if (!data.brandGuidelines || !Array.isArray(data.brandGuidelines.colors) || 
+        !Array.isArray(data.brandGuidelines.fonts) || !data.brandGuidelines.tone) {
+      throw new Error('brandGuidelines must include colors array, fonts array, and tone');
+    }
+    
+    return data as CampaignBrief;
+  };
+  
+  const handleCampaignUpload = async (files: FileList) => {
+    if (!files.length) return;
+    
+    const file = files[0];
+    
+    if (!file.name.endsWith('.json')) {
+      toast.error('Please upload a JSON campaign brief');
+      return;
+    }
+    
+    if (file.size > 1024 * 1024) { // 1MB limit
+      toast.error('Campaign brief file too large (max 1MB)');
+      return;
+    }
+    
+    try {
+      setIsProcessingMessage(true);
+      const text = await file.text();
+      const data = JSON.parse(text);
+      
+      // Validate campaign brief structure
+      const validatedBrief = validateCampaignBrief(data);
+      
+      setCampaignBrief(validatedBrief);
+      setCampaignPrompts([]); // Clear previous prompts
+      
+      const totalAssets = validatedBrief.products.length * 3; // 3 aspect ratios
+      toast.success(`✅ Campaign loaded: ${validatedBrief.products.length} products, ${totalAssets} assets to generate`);
+      
+    } catch (error) {
+      console.error('Campaign brief upload error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Invalid JSON format';
+      toast.error(`Failed to load campaign brief: ${errorMessage}`);
+      setCampaignBrief(null);
+    } finally {
+      setIsProcessingMessage(false);
+    }
+  };
+  
+  const handleGenerateCampaignPrompts = async () => {
+    if (!campaignBrief || !isCampaignModeAvailable) return;
+    
+    setIsProcessingMessage(true);
+    toast('🧠 Generating smart prompts...');
+    
+    try {
+      console.log('🎯 Starting campaign prompt generation...');
+      
+      // Validate and enhance brief
+      const enhancedBrief = validateAndEnhanceBrief({ ...campaignBrief });
+      
+      // Generate optimized prompts
+      const prompts = await generateCampaignPrompts(enhancedBrief);
+      setCampaignPrompts(prompts);
+      
+      // Generate summary for user feedback
+      const summary = generatePromptSummary(prompts);
+      console.log('📊 Prompt generation summary:', summary);
+      
+      toast.success(`✅ Generated ${prompts.length} optimized prompts`);
+      
+    } catch (error) {
+      console.error('Campaign prompt generation failed:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      toast.error(`Failed to generate prompts: ${errorMessage}`);
+      setCampaignPrompts([]);
+    } finally {
+      setIsProcessingMessage(false);
+    }
+  };
+  
+  const handleGenerateCampaignAssets = async () => {
+    if (!campaignBrief || !campaignPrompts.length || !isCampaignModeAvailable) return;
+    
+    setIsProcessingMessage(true);
+    
+    // Reset progress
+    setCampaignProgress({
+      current: 0,
+      total: campaignPrompts.length,
+      currentProduct: '',
+      currentFormat: '',
+      status: 'generating'
+    });
+    
+    toast('🚀 Starting campaign asset generation...');
+    
+    try {
+      console.log(`🎯 Starting campaign generation for ${campaignPrompts.length} assets...`);
+      
+      // Create EventSource for real-time progress updates
+      const response = await fetch('/api/campaign-generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          campaignBrief,
+          campaignPrompts
+        }),
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      // Process Server-Sent Events stream
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      
+      if (!reader) {
+        throw new Error('Failed to get response reader');
+      }
+      
+      while (true) {
+        const { done, value } = await reader.read();
+        
+        if (done) {
+          console.log('📡 Campaign generation stream completed');
+          break;
+        }
+        
+        const chunk = decoder.decode(value);
+        const lines = chunk.split('\\n');
+        
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.slice(6));
+              console.log('📊 Progress update:', data);
+              
+              if (data.type === 'progress') {
+                // Update progress state
+                setCampaignProgress({
+                  current: data.current,
+                  total: data.total,
+                  currentProduct: data.product,
+                  currentFormat: data.aspectRatio,
+                  status: data.status
+                });
+                
+                if (data.status === 'generating') {
+                  toast(`🎨 Generating ${data.product} ${data.aspectRatio} (${data.current}/${data.total})`);
+                } else if (data.status === 'completed') {
+                  toast.success(`✅ Completed ${data.product} ${data.aspectRatio}`);
+                } else if (data.status === 'error') {
+                  toast.error(`❌ Failed ${data.product} ${data.aspectRatio}: ${data.error}`);
+                }
+                
+              } else if (data.type === 'complete') {
+                // Campaign generation completed
+                console.log('🎉 Campaign generation completed:', data);
+                
+                setCampaignProgress({
+                  current: data.totalCount,
+                  total: data.totalCount,
+                  currentProduct: '',
+                  currentFormat: '',
+                  status: 'completed'
+                });
+                
+                toast.success(
+                  `🎉 Campaign completed! Generated ${data.successCount}/${data.totalCount} assets (${data.summary.successRate}% success rate)`
+                );
+                
+                // Add completion message to chat
+                const completionMsg: Message = {
+                  role: 'assistant',
+                  content: `Campaign "${campaignBrief.campaignId}" completed successfully!\\n\\n📊 Results:\\n- Total assets: ${data.totalCount}\\n- Successful: ${data.successCount}\\n- Failed: ${data.errorCount}\\n- Success rate: ${data.summary.successRate}%\\n\\n🚩 Campaign assets are now ready for Claude review. Check the output/${data.campaignId}/ folder for organized assets.`,
+                  timestamp: new Date()
+                };
+                setMessages(prev => [...prev, completionMsg]);
+                
+              } else if (data.type === 'error') {
+                // Campaign generation failed
+                throw new Error(data.error || 'Campaign generation failed');
+              }
+              
+            } catch (parseError) {
+              console.error('Failed to parse SSE data:', parseError);
+            }
+          }
+        }
+      }
+      
+    } catch (error) {
+      console.error('Campaign generation failed:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      toast.error(`Campaign generation failed: ${errorMessage}`);
+      
+      // Reset progress on error
+      setCampaignProgress({
+        current: 0,
+        total: 0,
+        currentProduct: '',
+        currentFormat: '',
+        status: 'generating'
+      });
+      
+    } finally {
+      setIsProcessingMessage(false);
+    }
+  };
+  
   return (
     <div className="flex h-screen bg-gray-50">
       <Sidebar
@@ -348,6 +617,8 @@ export default function ContentEngineUI() {
           setChatMode={setChatMode}
           isLoading={isLoading}
           isProcessingMessage={isProcessingMessage}
+          isCampaignModeAvailable={isCampaignModeAvailable}
+          campaignProgress={campaignProgress}
         />
         
         <ChatInterface
@@ -364,7 +635,124 @@ export default function ContentEngineUI() {
           onSendMessage={handleSendMessage}
           onGenerateImage={handleGenerateImage}
           onKeyPress={handleKeyPress}
+          campaignBrief={campaignBrief}
+          campaignPrompts={campaignPrompts}
+          onCampaignUpload={handleCampaignUpload}
         />
+        
+        {/* Campaign Preview and Progress */}
+        {chatMode === 'campaign' && (
+          <div className="border-t border-gray-200 p-4 bg-gray-50">
+            {!isCampaignModeAvailable && (
+              <div className="text-center text-gray-500 py-8">
+                <p>⚠️ Campaign mode requires connection to an image model</p>
+                <p className="text-sm mt-2">Please connect to Google AI first</p>
+              </div>
+            )}
+            
+            {isCampaignModeAvailable && !campaignBrief && (
+              <div className="text-center py-8">
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6">
+                  <input
+                    type="file"
+                    accept=".json"
+                    onChange={(e) => e.target.files && handleCampaignUpload(e.target.files)}
+                    className="hidden"
+                    id="campaign-upload"
+                  />
+                  <label 
+                    htmlFor="campaign-upload" 
+                    className="cursor-pointer block text-center"
+                  >
+                    <div className="text-4xl mb-2">📄</div>
+                    <h3 className="text-lg font-semibold text-gray-700">Upload Campaign Brief</h3>
+                    <p className="text-gray-500 mt-1">Drop your JSON campaign brief here or click to browse</p>
+                    <div className="mt-3 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 inline-block">
+                      Choose File
+                    </div>
+                  </label>
+                </div>
+              </div>
+            )}
+            
+            {campaignBrief && (
+              <div className="campaign-preview bg-blue-50 rounded-lg p-4 mb-4">
+                <h3 className="font-semibold text-blue-900 mb-2">📋 Campaign: {campaignBrief.campaignId}</h3>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <p><span className="font-medium">Products:</span> {campaignBrief.products.map(p => p.name).join(', ')}</p>
+                    <p><span className="font-medium">Target:</span> {campaignBrief.targetAudience}</p>
+                  </div>
+                  <div>
+                    <p><span className="font-medium">Region:</span> {campaignBrief.targetRegion}</p>
+                    <p><span className="font-medium">Assets to generate:</span> {campaignBrief.products.length * 3}</p>
+                  </div>
+                </div>
+                <p className="mt-2 text-blue-800"><span className="font-medium">Message:</span> "{campaignBrief.campaignMessage}"</p>
+                
+                <div className="mt-4 flex gap-3">
+                  <button
+                    onClick={handleGenerateCampaignPrompts}
+                    disabled={isProcessingMessage}
+                    className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isProcessingMessage ? '🧠 Generating...' : '🧠 Generate Smart Prompts'}
+                  </button>
+                  
+                  {campaignPrompts.length > 0 && (
+                    <button
+                      onClick={handleGenerateCampaignAssets}
+                      disabled={isProcessingMessage}
+                      className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isProcessingMessage ? '🚀 Generating...' : `🚀 Generate Assets (${campaignPrompts.length})`}
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+            
+            {campaignPrompts.length > 0 && (
+              <div className="campaign-prompts bg-green-50 rounded-lg p-4 mb-4">
+                <h4 className="font-semibold text-green-900 mb-2">🎯 Generated Prompts</h4>
+                <p className="text-sm text-green-800 mb-3">
+                  {generatePromptSummary(campaignPrompts)}
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+                  {campaignPrompts.slice(0, 6).map((prompt, index) => (
+                    <div key={index} className="bg-white p-2 rounded border">
+                      <strong>{prompt.productName}</strong> ({prompt.aspectRatio})
+                      <p className="text-gray-600 mt-1 truncate">
+                        {prompt.generatedPrompt.substring(0, 80)}...
+                      </p>
+                    </div>
+                  ))}
+                  {campaignPrompts.length > 6 && (
+                    <div className="text-center text-gray-500 flex items-center justify-center">
+                      +{campaignPrompts.length - 6} more prompts
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+            
+            {(campaignProgress.status === 'generating' || campaignProgress.status === 'completed') && campaignProgress.total > 0 && (
+              <div className="campaign-progress bg-green-50 rounded-lg p-4 mb-4">
+                <h4 className="font-semibold text-green-900 mb-2">🎨 Generation Progress</h4>
+                <div className="text-sm text-green-800">
+                  Generating {campaignProgress.currentProduct} {campaignProgress.currentFormat} 
+                  ({campaignProgress.current}/{campaignProgress.total})
+                </div>
+                <div className="w-full bg-green-200 rounded-full h-2 mt-2">
+                  <div 
+                    className="bg-green-500 h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${(campaignProgress.current / campaignProgress.total) * 100}%` }}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        )}
         
         {isImageModel && chatMode === 'image' && (
           <div className={`border-t border-gray-200 p-4 ${isConnected ? 'bg-gray-50' : 'bg-gray-100 opacity-50'}`}>

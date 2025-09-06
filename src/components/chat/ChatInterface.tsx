@@ -2,6 +2,7 @@ import React, { useRef, useEffect } from 'react';
 import { MessageBubble } from './MessageBubble';
 import { ChatInput } from './ChatInput';
 import { Message, UploadedImage } from '@/types/chat.types';
+import { CampaignBrief, CampaignPrompt } from '@/types/campaign.types';
 
 interface ChatInterfaceProps {
   messages: Message[];
@@ -12,11 +13,15 @@ interface ChatInterfaceProps {
   selectedProvider: string;
   selectedModel: string;
   isImageModel: boolean;
-  chatMode: 'chat' | 'image';
+  chatMode: 'chat' | 'image' | 'campaign';
   uploadedImages: UploadedImage[];
   onSendMessage: () => void;
   onGenerateImage: () => void;
   onKeyPress: (e: React.KeyboardEvent) => void;
+  // Campaign-specific props
+  campaignBrief?: CampaignBrief | null;
+  campaignPrompts?: CampaignPrompt[];
+  onCampaignUpload?: (files: FileList) => void;
 }
 
 export const ChatInterface = React.memo(function ChatInterface({
@@ -32,7 +37,10 @@ export const ChatInterface = React.memo(function ChatInterface({
   uploadedImages,
   onSendMessage,
   onGenerateImage,
-  onKeyPress
+  onKeyPress,
+  campaignBrief,
+  campaignPrompts,
+  onCampaignUpload
 }: ChatInterfaceProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   

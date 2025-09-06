@@ -1,14 +1,17 @@
 import React from 'react';
+import { CampaignProgress } from '@/types/campaign.types';
 
 interface HeaderProps {
   isConnected: boolean;
   selectedProvider: string;
   selectedModel: string;
   isImageModel: boolean;
-  chatMode: 'chat' | 'image';
-  setChatMode: (mode: 'chat' | 'image') => void;
+  chatMode: 'chat' | 'image' | 'campaign';
+  setChatMode: (mode: 'chat' | 'image' | 'campaign') => void;
   isLoading: boolean;
   isProcessingMessage: boolean;
+  isCampaignModeAvailable?: boolean;
+  campaignProgress?: CampaignProgress;
 }
 
 export const Header = React.memo(function Header({
@@ -19,7 +22,9 @@ export const Header = React.memo(function Header({
   chatMode,
   setChatMode,
   isLoading,
-  isProcessingMessage
+  isProcessingMessage,
+  isCampaignModeAvailable = false,
+  campaignProgress
 }: HeaderProps) {
   return (
     <div className="bg-white border-b border-gray-200 p-4">
@@ -67,11 +72,25 @@ export const Header = React.memo(function Header({
             >
               🎨 Image
             </button>
+            {isCampaignModeAvailable && (
+              <button
+                onClick={() => setChatMode('campaign')}
+                className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${
+                  chatMode === 'campaign'
+                    ? 'bg-white text-gray-900 shadow-sm'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                🚀 Campaign
+              </button>
+            )}
           </div>
           <p className="text-xs text-gray-500 mt-1">
             {chatMode === 'chat' 
               ? 'Chat with text-only responses using proper response modalities'
-              : 'Generate and edit images with text prompts'
+              : chatMode === 'image'
+              ? 'Generate and edit images with text prompts'
+              : 'Upload campaign brief and generate multiple social media assets'
             }
           </p>
         </div>
