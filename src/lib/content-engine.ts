@@ -11,7 +11,7 @@ export interface AIProvider {
   displayName: string;
   models: string[];
   
-  validateApiKey(apiKey: string): Promise<boolean>;
+  validateApiKey(apiKey: string, model?: string): Promise<boolean>;
   initialize(apiKey: string, model: string): Promise<void>;
   chat(messages: Message[], context?: string[]): Promise<string>;
   stream(messages: Message[], context?: string[]): AsyncIterable<string>;
@@ -66,8 +66,8 @@ export class ProviderManager {
     }
     
     try {
-      // Validate API key first
-      const isValid = await provider.validateApiKey(apiKey);
+      // Validate API key first with the selected model
+      const isValid = await provider.validateApiKey(apiKey, model);
       if (!isValid) {
         return { success: false, error: 'Invalid API key' };
       }
@@ -117,7 +117,7 @@ export class GoogleProvider implements AIProvider {
   private chatModel: string = ''; // Model used for chat (higher quota)
   private imageModel: string = ''; // Model used for images
   
-  async validateApiKey(apiKey: string): Promise<boolean> {
+  async validateApiKey(apiKey: string, model?: string): Promise<boolean> {
     try {
       // For security: Use server-side API route for validation
       // This ensures environment variables are accessed server-side only
@@ -125,7 +125,10 @@ export class GoogleProvider implements AIProvider {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
-        }
+        },
+        body: JSON.stringify({ 
+          model: model || this.currentModel // Use provided model or fall back to current model
+        })
       });
       
       const result = await response.json();

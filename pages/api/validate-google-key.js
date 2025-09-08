@@ -6,6 +6,8 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  const { model: requestedModel } = req.body;
+
   try {
     // Check if environment variable exists
     const apiKey = process.env.GOOGLE_AI_API_KEY;
@@ -20,14 +22,22 @@ export default async function handler(req, res) {
     const { GoogleGenAI } = await import('@google/genai');
     const genAI = new GoogleGenAI({ apiKey });
     
-    // Smart fallback hierarchy - start with most reliable, quota-friendly models
-    const modelsToTest = [
+    // Smart fallback hierarchy - prioritize requested model, then reliable fallbacks
+    const fallbackModels = [
       'gemini-2.5-flash-lite',    // Most reliable, lowest quota usage
       'gemini-2.5-flash',         // Fallback option
       'gemini-2.5-pro'           // Last resort
     ];
     
+    // If a specific model was requested, test it first, then fall back to reliable models
+    const modelsToTest = requestedModel 
+      ? [requestedModel, ...fallbackModels.filter(m => m !== requestedModel)]
+      : fallbackModels;
+    
     console.log('🔍 Starting Google AI API key validation with smart fallback...');
+    if (requestedModel) {
+      console.log(`🎯 Prioritizing requested model: ${requestedModel}`);
+    }
     
     // Try each model in cascade until one works or we get a real auth error
     let lastError = null;
