@@ -19,7 +19,7 @@ export default async function handler(req, res) {
     }
 
     // Validate the key by testing it with Google AI
-    const { GoogleGenAI } = await import('@google/genai');
+    const { GoogleGenAI, Modality } = await import('@google/genai');
     const genAI = new GoogleGenAI({ apiKey });
     
     // Smart fallback hierarchy - prioritize requested model, then reliable fallbacks
@@ -48,11 +48,27 @@ export default async function handler(req, res) {
       console.log(`🔄 Testing validation with model: ${modelName} (attempt ${i + 1}/${modelsToTest.length})`);
       
       try {
-        // Simple validation - try to generate a minimal response
-        const result = await genAI.models.generateContent({
-          model: modelName,
-          contents: 'Hi' // Minimal test prompt to minimize quota usage
-        });
+        // Check if this is an image generation model that requires special handling
+        const isImageGenerationModel = modelName === 'gemini-2.0-flash-preview-image-generation' || 
+                                      modelName === 'gemini-2.5-flash-image-preview';
+        
+        let result;
+        if (isImageGenerationModel) {
+          // Image generation models require both TEXT and IMAGE response modalities
+          result = await genAI.models.generateContent({
+            model: modelName,
+            contents: 'Generate a simple test image', // Image generation prompt
+            config: {
+              responseModalities: [Modality.TEXT, Modality.IMAGE] // Required for image generation models
+            }
+          });
+        } else {
+          // Standard text-only models
+          result = await genAI.models.generateContent({
+            model: modelName,
+            contents: 'Hi' // Minimal test prompt to minimize quota usage
+          });
+        }
         
         // If we get here without throwing, the key is valid
         console.log(`✅ Google AI API key validation successful using model: ${modelName}`);
