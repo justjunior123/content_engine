@@ -410,25 +410,6 @@ export const validateAndEnhanceBrief = (brief: CampaignBrief): CampaignBrief => 
   return brief;
 };
 
-// Preview multi-image prompt summary for UI display
-export const generateMultiImagePromptSummary = (results: { prompt: EnhancedCampaignPrompt; assets: AssetData[] }[]): string => {
-  const totalAssets = results.reduce((sum, result) => sum + result.assets.length, 0);
-  const products = Array.from(new Set(results.map(r => r.prompt.productName)));
-  const totalPrompts = results.length;
-  
-  const assetBreakdown = results.reduce((acc, result) => {
-    result.assets.forEach(asset => {
-      acc[asset.type] = (acc[asset.type] || 0) + 1;
-    });
-    return acc;
-  }, {} as Record<string, number>);
-  
-  const assetSummary = Object.entries(assetBreakdown)
-    .map(([type, count]) => `${count} ${type}${count > 1 ? 's' : ''}`)
-    .join(', ') || 'no existing assets';
-  
-  return `Generated ${totalPrompts} multi-image prompts for ${products.length} products (${products.join(', ')}) using ${assetSummary}. Each product includes 3 social media formats with intelligent asset composition and brand-consistent messaging.`;
-};
 
 // Preview prompt summary for UI display (original function)
 export const generatePromptSummary = (prompts: CampaignPrompt[]): string => {
