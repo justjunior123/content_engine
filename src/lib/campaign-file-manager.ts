@@ -16,15 +16,15 @@ export const ensureDirectoryStructure = async () => {
     'config'
   ];
   
-  console.log('📁 Ensuring directory structure...');
+  console.log('Ensuring directory structure...');
   
   for (const dir of dirs) {
     const fullPath = path.join(process.cwd(), dir);
     try {
       await fs.mkdir(fullPath, { recursive: true });
-      console.log(`✅ Directory ready: ${dir}`);
+      console.log(`Directory ready: ${dir}`);
     } catch (error) {
-      console.error(`❌ Failed to create directory ${dir}:`, error);
+      console.error(`Failed to create directory ${dir}:`, error);
     }
   }
 };
@@ -54,7 +54,7 @@ export const saveAssetWithMetadata = async (params: {
     // Convert base64 to buffer and save image
     const buffer = Buffer.from(imageData, 'base64');
     await fs.writeFile(imagePath, buffer);
-    console.log(`💾 Saved image: ${imagePath}`);
+    console.log(`Saved image: ${imagePath}`);
     
     // Save metadata for Claude context
     const metadata = {
@@ -72,12 +72,12 @@ export const saveAssetWithMetadata = async (params: {
     
     const metadataPath = path.join(basePath, 'metadata.json');
     await fs.writeFile(metadataPath, JSON.stringify(metadata, null, 2));
-    console.log(`📋 Saved metadata: ${metadataPath}`);
+    console.log(`Saved metadata: ${metadataPath}`);
     
     return path.relative(process.cwd(), imagePath);
     
   } catch (error) {
-    console.error(`❌ Failed to save asset ${productName} ${aspectRatio}:`, error);
+    console.error(`Failed to save asset ${productName} ${aspectRatio}:`, error);
     throw error;
   }
 };
@@ -94,7 +94,7 @@ export const createReviewFlag = async (
     // Store original brief for Claude context
     const briefPath = path.join(campaignPath, 'campaign_brief.json');
     await fs.writeFile(briefPath, JSON.stringify(brief, null, 2));
-    console.log(`📄 Saved campaign brief: ${briefPath}`);
+    console.log(`Saved campaign brief: ${briefPath}`);
     
     // Create review flag with comprehensive information
     const reviewFlag: ReviewStatus = {
@@ -113,7 +113,7 @@ export const createReviewFlag = async (
     
     const flagPath = path.join(campaignPath, 'review_status.json');
     await fs.writeFile(flagPath, JSON.stringify(reviewFlag, null, 2));
-    console.log(`🚩 Review flag created: ${flagPath}`);
+    console.log(`Review flag created: ${flagPath}`);
     
     // Create campaign summary for easy reference
     const summary = {
@@ -130,10 +130,10 @@ export const createReviewFlag = async (
     
     const summaryPath = path.join(campaignPath, 'campaign_summary.json');
     await fs.writeFile(summaryPath, JSON.stringify(summary, null, 2));
-    console.log(`📊 Campaign summary created: ${summaryPath}`);
+    console.log(`Campaign summary created: ${summaryPath}`);
     
   } catch (error) {
-    console.error(`❌ Failed to create review flag for ${campaignId}:`, error);
+    console.error(`Failed to create review flag for ${campaignId}:`, error);
     throw error;
   }
 };
@@ -194,10 +194,10 @@ export const createDirectoryIndex = async (campaignId: string): Promise<void> =>
     
     const indexPath = path.join(campaignPath, 'directory_index.json');
     await fs.writeFile(indexPath, JSON.stringify(index, null, 2));
-    console.log(`📇 Directory index created: ${indexPath}`);
+    console.log(`Directory index created: ${indexPath}`);
     
   } catch (error) {
-    console.error(`❌ Failed to create directory index for ${campaignId}:`, error);
+    console.error(`Failed to create directory index for ${campaignId}:`, error);
   }
 };
 
@@ -206,13 +206,13 @@ export const loadAssetsAsBase64 = async (productNames: string[]): Promise<AssetD
   const assetDirs = ['logos', 'backgrounds', 'product-images'];
   const loadedAssets: AssetData[] = [];
   
-  console.log('🔍 Scanning input/assets/ for available assets...');
+  console.log('Scanning input/assets/ for available assets...');
   
   for (const dir of assetDirs) {
     const dirPath = path.join(process.cwd(), 'input/assets', dir);
     try {
       const files = await fs.readdir(dirPath);
-      console.log(`📁 Scanning ${dir}/: found ${files.length} files`);
+      console.log(`Scanning ${dir}/: found ${files.length} files`);
       
       for (const file of files) {
         if (file.match(/\.(png|jpg|jpeg|svg)$/i) && !file.startsWith('.')) {
@@ -234,16 +234,16 @@ export const loadAssetsAsBase64 = async (productNames: string[]): Promise<AssetD
             
             console.log(`✅ Loaded ${dir}/${file} (${Math.round(buffer.length / 1024)}KB)${productMatch ? ` -> ${productMatch}` : ''}`);
           } catch (fileError) {
-            console.warn(`⚠️ Failed to load ${dir}/${file}:`, fileError instanceof Error ? fileError.message : fileError);
+            console.warn(`Failed to load ${dir}/${file}:`, fileError instanceof Error ? fileError.message : fileError);
           }
         }
       }
     } catch (dirError) {
-      console.warn(`⚠️ Could not read directory ${dir}:`, dirError instanceof Error ? dirError.message : dirError);
+      console.warn(`Could not read directory ${dir}:`, dirError instanceof Error ? dirError.message : dirError);
     }
   }
   
-  console.log(`📦 Total assets loaded: ${loadedAssets.length}`);
+  console.log(`✅ Total assets loaded: ${loadedAssets.length}`);
   return loadedAssets;
 };
 

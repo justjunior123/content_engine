@@ -27,19 +27,19 @@ export default async function handler(req, res) {
   }
 
   console.log(`🚀 Starting campaign generation: ${campaignBrief.campaignId}`);
-  console.log(`🎨 Using multi-image asset generation`);
+  console.log(`Using multi-image asset generation`);
   
   // Load available assets
   const availableAssets = await loadAssetsAsBase64(
     campaignBrief.products.map(p => p.name)
   );
-  console.log(`📦 Loaded ${availableAssets.length} assets from input/assets/`);
+  console.log(`🔍 Loaded ${availableAssets.length} assets from input/assets/`);
   
   // Generate multi-image prompts with asset awareness
   const enhancedPrompts = await generateMultiImagePrompts(campaignBrief, availableAssets);
   const totalPrompts = enhancedPrompts.length;
-  console.log(`📝 Generated ${totalPrompts} multi-image prompts`);
-  console.log(`🎯 Total prompts to process: ${totalPrompts}`);
+  console.log(`Generated ${totalPrompts} multi-image prompts`);
+  console.log(`Total prompts to process: ${totalPrompts}`);
 
   try {
     // Ensure directory structure exists
@@ -59,7 +59,7 @@ export default async function handler(req, res) {
       'Access-Control-Allow-Headers': 'Cache-Control',
     });
     
-    console.log(`🎯 Starting sequential generation for campaign: ${campaignId}`);
+    console.log(`Starting sequential generation for campaign: ${campaignId}`);
     
     // Sequential generation to avoid quota limits
     for (const [index, promptData] of enhancedPrompts.entries()) {
@@ -78,9 +78,9 @@ export default async function handler(req, res) {
       };
       
       const generationMethod = assets.length > 0 ? 'multi-image' : 'text-only';
-      console.log(`🎨 [${index + 1}/${totalPrompts}] Generating ${generationMethod}: ${prompt.productName} ${prompt.aspectRatio}`);
+      console.log(`[${index + 1}/${totalPrompts}] Generating ${generationMethod}: ${prompt.productName} ${prompt.aspectRatio}`);
       if (assets.length > 0) {
-        console.log(`🖼️ Using ${assets.length} assets: ${assets.map(a => a.filename).join(', ')}`);
+        console.log(`Using ${assets.length} assets: ${assets.map(a => a.filename).join(', ')}`);
       }
       
       // Send progress update
@@ -119,7 +119,7 @@ export default async function handler(req, res) {
         results.push(result);
         successCount++;
         
-        console.log(`✅ [${index + 1}/${totalPrompts}] Success: ${prompt.productName} ${prompt.aspectRatio} (${generationMethod})`);
+        console.log(`[${index + 1}/${totalPrompts}] Success: ${prompt.productName} ${prompt.aspectRatio} (${generationMethod})`);
         
         // Send completion update
         const completedProgress = { 
@@ -168,17 +168,17 @@ export default async function handler(req, res) {
     // Create review flag for Claude MCP monitoring
     try {
       await createReviewFlag(campaignId, campaignBrief, results);
-      console.log(`🚩 Review flag created for campaign: ${campaignId}`);
+      console.log(`Review flag created for campaign: ${campaignId}`);
     } catch (flagError) {
-      console.error('⚠️ Failed to create review flag:', flagError);
+      console.error('Failed to create review flag:', flagError);
     }
     
     // Create directory index for organized browsing
     try {
       await createDirectoryIndex(campaignId);
-      console.log(`📇 Directory index created for campaign: ${campaignId}`);
+      console.log(`Directory index created for campaign: ${campaignId}`);
     } catch (indexError) {
-      console.error('⚠️ Failed to create directory index:', indexError);
+      console.error('Failed to create directory index:', indexError);
     }
     
     // Send final completion event
@@ -198,7 +198,7 @@ export default async function handler(req, res) {
     };
     
     res.write(`data: ${JSON.stringify(finalResult)}\\n\\n`);
-    console.log(`🎉 Campaign ${campaignId} completed successfully!`);
+    console.log(`✅ Campaign ${campaignId} completed successfully!`);
     
   } catch (error) {
     console.error('❌ Campaign generation error:', error);
@@ -218,7 +218,7 @@ export default async function handler(req, res) {
 // Generate image with multiple assets using Gemini's multi-image composition
 async function generateWithMultipleAssets(prompt, assets) {
   try {
-    console.log(`🖼️ Generating with ${assets.length} input assets`);
+    console.log(`Generating with ${assets.length} input assets`);
     
     // Check if environment variable exists
     const apiKey = process.env.GOOGLE_AI_API_KEY;
@@ -233,7 +233,7 @@ async function generateWithMultipleAssets(prompt, assets) {
     // Use gemini-2.0 model for multi-image generation
     const model = 'gemini-2.0-flash-preview-image-generation';
     
-    console.log(`🎨 Using model: ${model} with multi-image composition`);
+    console.log(`Using model: ${model} with multi-image composition`);
     
     // Build contents array with text + multiple images
     const contents = [prompt]; // Text prompt first
@@ -248,7 +248,7 @@ async function generateWithMultipleAssets(prompt, assets) {
       });
     }
     
-    console.log(`📝 Sending ${contents.length} content items (1 text + ${assets.length} images)`);
+    console.log(`Sending ${contents.length} content items (1 text + ${assets.length} images)`);
     
     let result;
     if (model === 'gemini-2.0-flash-preview-image-generation') {
@@ -279,14 +279,14 @@ async function generateWithMultipleAssets(prompt, assets) {
         // Strategy 1: Check part.inlineData.data (most common)
         if (part.inlineData && part.inlineData.data) {
           imageData = part.inlineData.data;
-          console.log(`✅ Multi-image composition successful via inlineData.data (${imageData.length} chars)`);
+          console.log(`Multi-image composition successful via inlineData.data (${imageData.length} chars)`);
           break;
         }
         
         // Strategy 2: Check alternative naming
         if (part.inline_data && part.inline_data.data) {
           imageData = part.inline_data.data;
-          console.log(`✅ Multi-image composition successful via inline_data.data (${imageData.length} chars)`);
+          console.log(`Multi-image composition successful via inline_data.data (${imageData.length} chars)`);
           break;
         }
       }
@@ -327,7 +327,7 @@ async function generateWithMultipleAssets(prompt, assets) {
 // Generate single image using existing google-generate-image logic (fallback)
 async function generateSingleImage(prompt) {
   try {
-    console.log(`📸 Generating image with prompt length: ${prompt.length} chars`);
+    console.log(`Generating image with prompt length: ${prompt.length} chars`);
     
     // Check if environment variable exists
     const apiKey = process.env.GOOGLE_AI_API_KEY;
@@ -342,7 +342,7 @@ async function generateSingleImage(prompt) {
     // Use gemini-2.0 model for image generation (most reliable for campaign work)
     const model = 'gemini-2.0-flash-preview-image-generation';
     
-    console.log(`🎨 Using model: ${model}`);
+    console.log(`Using model: ${model}`);
     
     let result;
     if (model === 'gemini-2.0-flash-preview-image-generation') {
@@ -373,14 +373,14 @@ async function generateSingleImage(prompt) {
         // Strategy 1: Check part.inlineData.data (most common)
         if (part.inlineData && part.inlineData.data) {
           imageData = part.inlineData.data;
-          console.log(`✅ Image data found via inlineData.data (${imageData.length} chars)`);
+          console.log(`Image data found via inlineData.data (${imageData.length} chars)`);
           break;
         }
         
         // Strategy 2: Check alternative naming
         if (part.inline_data && part.inline_data.data) {
           imageData = part.inline_data.data;
-          console.log(`✅ Image data found via inline_data.data (${imageData.length} chars)`);
+          console.log(`Image data found via inline_data.data (${imageData.length} chars)`);
           break;
         }
       }

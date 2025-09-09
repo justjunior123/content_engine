@@ -34,9 +34,9 @@ export default async function handler(req, res) {
       ? [requestedModel, ...fallbackModels.filter(m => m !== requestedModel)]
       : fallbackModels;
     
-    console.log('🔍 Starting Google AI API key validation with smart fallback...');
+    console.log('Starting Google AI API key validation with smart fallback...');
     if (requestedModel) {
-      console.log(`🎯 Prioritizing requested model: ${requestedModel}`);
+      console.log(`Prioritizing requested model: ${requestedModel}`);
     }
     
     // Try each model in cascade until one works or we get a real auth error
@@ -45,7 +45,7 @@ export default async function handler(req, res) {
     
     for (let i = 0; i < modelsToTest.length; i++) {
       const modelName = modelsToTest[i];
-      console.log(`🔄 Testing validation with model: ${modelName} (attempt ${i + 1}/${modelsToTest.length})`);
+      console.log(`Testing validation with model: ${modelName} (attempt ${i + 1}/${modelsToTest.length})`);
       
       try {
         // Check if this is an image generation model that requires special handling
@@ -79,7 +79,7 @@ export default async function handler(req, res) {
         });
         
       } catch (apiError) {
-        console.log(`⚠️ Model ${modelName} failed: ${apiError.message}`);
+        console.log(`Model ${modelName} failed: ${apiError.message}`);
         lastError = apiError;
         
         // Check if it's a quota exceeded error
@@ -92,11 +92,11 @@ export default async function handler(req, res) {
         
         if (isQuotaError) {
           quotaErrors.push({ model: modelName, error: apiError.message });
-          console.log(`⏭️ Quota exceeded for ${modelName}, trying next model...`);
+          console.log(`Quota exceeded for ${modelName}, trying next model...`);
           continue; // Try next model
         } else {
           // Real auth/API error - no point trying other models
-          console.error(`❌ Authentication/API error with ${modelName}:`, apiError);
+          console.error(`Authentication/API error with ${modelName}:`, apiError);
           return res.status(400).json({ 
             valid: false, 
             error: `Invalid Google AI API key or API access denied (tested with ${modelName})`,
@@ -109,7 +109,7 @@ export default async function handler(req, res) {
     // If we get here, all models failed with quota errors
     // This actually means the API key is valid, just quota exhausted
     if (quotaErrors.length > 0) {
-      console.log('✅ API key is valid - all models failed due to quota limits only');
+      console.log('API key is valid - all models failed due to quota limits only');
       return res.status(200).json({ 
         valid: true,
         message: 'API key validation successful (quota exceeded on all test models indicates valid key)',
@@ -119,7 +119,7 @@ export default async function handler(req, res) {
     }
     
     // Final fallback - if we have a lastError but no quota errors, return it
-    console.error('❌ All validation attempts failed:', lastError);
+    console.error('All validation attempts failed:', lastError);
     return res.status(400).json({ 
       valid: false, 
       error: 'Google AI API key validation failed on all test models',

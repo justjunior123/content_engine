@@ -134,10 +134,10 @@ export class GoogleProvider implements AIProvider {
       const result = await response.json();
       
       if (result.valid) {
-        console.log('✅ Google AI API key validation successful via server');
+        console.log('Google AI API key validation successful via server');
         return true;
       } else {
-        console.error('❌ Google AI API key validation failed:', result.error);
+        console.error('Google AI API key validation failed:', result.error);
         return false;
       }
     } catch (error) {
@@ -212,7 +212,7 @@ export class GoogleProvider implements AIProvider {
       throw new Error(`Google AI chat not initialized for model ${this.currentModel}. Please reconnect.`);
     }
     
-    console.log(`💬 GoogleProvider: Starting chat with model ${this.chatModel}`);
+    console.log(`GoogleProvider: Starting chat with model ${this.chatModel}`);
     
     try {
       // Use server-side API route for chat to ensure security
@@ -234,11 +234,11 @@ export class GoogleProvider implements AIProvider {
         throw new Error(result.error || 'Chat request failed');
       }
       
-      console.log(`✅ GoogleProvider: Chat completed successfully via server (${result.response.length} chars)`);
+      console.log(`GoogleProvider: Chat completed successfully via server (${result.response.length} chars)`);
       return result.response;
       
     } catch (error) {
-      console.error('❌ GoogleProvider: Chat failed:', error);
+      console.error('GoogleProvider: Chat failed:', error);
       throw new Error(`Google AI chat failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
@@ -248,7 +248,7 @@ export class GoogleProvider implements AIProvider {
       throw new Error(`Google AI stream not initialized for model ${this.currentModel}. Please reconnect.`);
     }
     
-    console.log(`🔄 GoogleProvider: Starting streaming with model ${this.chatModel}...`);
+    console.log(`GoogleProvider: Starting streaming with model ${this.chatModel}...`);
     
     try {
       // Use server-side API route for streaming to ensure security
@@ -306,10 +306,10 @@ export class GoogleProvider implements AIProvider {
         reader.releaseLock();
       }
       
-      console.log('✅ GoogleProvider: Streaming completed successfully via server');
+      console.log('GoogleProvider: Streaming completed successfully via server');
       
     } catch (error) {
-      console.error('❌ GoogleProvider: Stream failed:', error);
+      console.error('GoogleProvider: Stream failed:', error);
       throw new Error(`Google AI stream failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
@@ -324,7 +324,7 @@ export class GoogleProvider implements AIProvider {
       throw new Error('Image generation not available. Please select gemini-2.5-flash-image-preview or gemini-2.0-flash-preview-image-generation.');
     }
     
-    console.log(`🎨 GoogleProvider: Starting image generation with model ${this.imageModel}`);
+    console.log(`GoogleProvider: Starting image generation with model ${this.imageModel}`);
     
     try {
       // Convert ImageData[] to uploaded images format for API
@@ -354,11 +354,11 @@ export class GoogleProvider implements AIProvider {
         throw new Error(result.error || 'Image generation request failed');
       }
       
-      console.log('✅ GoogleProvider: Image generated successfully via server');
+      console.log('GoogleProvider: Image generated successfully via server');
       return result.imageData;
       
     } catch (error) {
-      console.error('❌ GoogleProvider: Image generation failed:', error);
+      console.error('GoogleProvider: Image generation failed:', error);
       throw new Error(`Image generation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }

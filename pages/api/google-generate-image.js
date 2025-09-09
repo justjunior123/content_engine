@@ -33,11 +33,11 @@ export default async function handler(req, res) {
     const { GoogleGenAI } = await import('@google/genai');
     const genAI = new GoogleGenAI({ apiKey });
     
-    console.log(`🎨 GoogleProvider: Starting image generation with model ${model}`);
-    console.log(`🎨 Prompt: "${prompt}"`);
+    console.log(`🚀 Starting image generation with model ${model}`);
+    console.log(`Prompt: "${prompt}"`);
     
     if (uploadedImages && uploadedImages.length > 0) {
-      console.log(`📸 Using ${uploadedImages.length} uploaded image${uploadedImages.length > 1 ? 's' : ''}`);
+      console.log(`Using ${uploadedImages.length} uploaded image${uploadedImages.length > 1 ? 's' : ''}`);
     }
     
     try {
@@ -59,13 +59,13 @@ export default async function handler(req, res) {
         }
       }
       
-      console.log('🔄 GoogleProvider: Calling generateContent for image generation...');
+      console.log('Calling generateContent for image generation...');
       
       let result;
       if (model === 'gemini-2.0-flash-preview-image-generation') {
         // 2.0 model REQUIRES response modalities configuration
         const { Modality } = await import('@google/genai');
-        console.log('🔄 Using 2.0 model with required response modalities [TEXT, IMAGE]');
+        console.log('Using 2.0 model with required response modalities [TEXT, IMAGE]');
         result = await genAI.models.generateContent({
           model: model,
           contents: contents,
@@ -75,14 +75,14 @@ export default async function handler(req, res) {
         });
       } else {
         // 2.5 models work with simplified configuration
-        console.log('🔄 Using 2.5 model with simplified configuration');
+        console.log('Using 2.5 model with simplified configuration');
         result = await genAI.models.generateContent({
           model: model,
           contents: contents
         });
       }
       
-      console.log('🔍 GoogleProvider: Parsing image generation response...');
+      console.log('Parsing image generation response...');
       
       // Comprehensive response structure analysis
       console.log('Full response structure:', {
@@ -132,7 +132,7 @@ export default async function handler(req, res) {
           }
         });
       } else {
-        console.log('❌ No parts found in response structure');
+        console.log('No parts found in response structure');
         // Try alternative response structures
         console.log('Alternative response paths:', {
           hasDirectContent: !!result.content,
@@ -147,63 +147,63 @@ export default async function handler(req, res) {
       
       if (result.candidates && result.candidates[0] && result.candidates[0].content && result.candidates[0].content.parts) {
         const parts = result.candidates[0].content.parts;
-        console.log('🔍 Starting image data extraction from parts...');
+        console.log('Starting image data extraction from parts...');
         
         for (const [index, part] of parts.entries()) {
-          console.log(`🔍 Analyzing part ${index} for image data...`);
+          console.log(`Analyzing part ${index} for image data...`);
           
           // Strategy 1: Check part.inlineData.data (current approach)
           if (part.inlineData && part.inlineData.data) {
             imageData = part.inlineData.data;
-            console.log(`✅ GoogleProvider: Image found via inlineData.data. Length: ${imageData.length} chars`);
+            console.log(`✅ Image generation successful. Length: ${imageData.length} chars`);
             break;
           }
           
           // Strategy 2: Check part.inline_data.data (alternative naming)
           if (part.inline_data && part.inline_data.data) {
             imageData = part.inline_data.data;
-            console.log(`✅ GoogleProvider: Image found via inline_data.data. Length: ${imageData.length} chars`);
+            console.log(`Image found via inline_data.data. Length: ${imageData.length} chars`);
             break;
           }
           
           // Strategy 3: Check for binary data directly
           if (part.data && typeof part.data === 'string') {
             imageData = part.data;
-            console.log(`✅ GoogleProvider: Image found via direct data property. Length: ${imageData.length} chars`);
+            console.log(`Image found via direct data property. Length: ${imageData.length} chars`);
             break;
           }
           
           // Strategy 4: Check if the part itself has base64-like data
           if (typeof part === 'string' && part.length > 1000 && /^[A-Za-z0-9+/]+=*$/.test(part)) {
             imageData = part;
-            console.log(`✅ GoogleProvider: Image found as direct base64 string. Length: ${imageData.length} chars`);
+            console.log(`Image found as direct base64 string. Length: ${imageData.length} chars`);
             break;
           }
           
           // Strategy 5: Check nested data structures
           if (part.content && part.content.data) {
             imageData = part.content.data;
-            console.log(`✅ GoogleProvider: Image found via content.data. Length: ${imageData.length} chars`);
+            console.log(`Image found via content.data. Length: ${imageData.length} chars`);
             break;
           }
           
           // Strategy 6: Check for file_data or fileData
           if (part.file_data && part.file_data.data) {
             imageData = part.file_data.data;
-            console.log(`✅ GoogleProvider: Image found via file_data.data. Length: ${imageData.length} chars`);
+            console.log(`Image found via file_data.data. Length: ${imageData.length} chars`);
             break;
           }
           
           if (part.fileData && part.fileData.data) {
             imageData = part.fileData.data;
-            console.log(`✅ GoogleProvider: Image found via fileData.data. Length: ${imageData.length} chars`);
+            console.log(`Image found via fileData.data. Length: ${imageData.length} chars`);
             break;
           }
           
           // Strategy 7: Check for blob or buffer data
           if (part.blob && typeof part.blob === 'string') {
             imageData = part.blob;
-            console.log(`✅ GoogleProvider: Image found via blob property. Length: ${imageData.length} chars`);
+            console.log(`Image found via blob property. Length: ${imageData.length} chars`);
             break;
           }
           
@@ -211,7 +211,7 @@ export default async function handler(req, res) {
           const deepSearch = (obj, path = '') => {
             for (const [key, value] of Object.entries(obj)) {
               if (typeof value === 'string' && value.length > 1000 && /^[A-Za-z0-9+/]+=*$/.test(value)) {
-                console.log(`✅ GoogleProvider: Image found via deep search at ${path}.${key}. Length: ${value.length} chars`);
+                console.log(`Image found via deep search at ${path}.${key}. Length: ${value.length} chars`);
                 return value;
               }
               if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
@@ -230,21 +230,21 @@ export default async function handler(req, res) {
             }
           }
           
-          console.log(`❌ No image data found in part ${index}`);
+          console.log(`No image data found in part ${index}`);
         }
       }
       
       // Alternative parsing if primary structure fails
       if (!imageData) {
-        console.log('🔍 Trying alternative response structures...');
+        console.log('Trying alternative response structures...');
         
         // Try direct response paths
         if (result.content && result.content.parts) {
-          console.log('🔍 Checking result.content.parts...');
+          console.log('Checking result.content.parts...');
           for (const [index, part] of result.content.parts.entries()) {
             if (part.inlineData && part.inlineData.data) {
               imageData = part.inlineData.data;
-              console.log(`✅ GoogleProvider: Image found via alternative path result.content.parts[${index}].inlineData.data`);
+              console.log(`Image found via alternative path result.content.parts[${index}].inlineData.data`);
               break;
             }
           }
@@ -252,11 +252,11 @@ export default async function handler(req, res) {
         
         // Try direct parts array
         if (!imageData && result.parts) {
-          console.log('🔍 Checking result.parts...');
+          console.log('Checking result.parts...');
           for (const [index, part] of result.parts.entries()) {
             if (part.inlineData && part.inlineData.data) {
               imageData = part.inlineData.data;
-              console.log(`✅ GoogleProvider: Image found via alternative path result.parts[${index}].inlineData.data`);
+              console.log(`Image found via alternative path result.parts[${index}].inlineData.data`);
               break;
             }
           }
@@ -265,13 +265,13 @@ export default async function handler(req, res) {
         // Try result.data directly
         if (!imageData && result.data && typeof result.data === 'string') {
           imageData = result.data;
-          console.log('✅ GoogleProvider: Image found via result.data directly');
+          console.log('Image found via result.data directly');
         }
       }
       
       // Enhanced debugging for failed cases
       if (!imageData) {
-        console.error('❌ GoogleProvider: No image data found in response');
+        console.error('No image data found in response');
         console.log('Full response keys:', Object.keys(result));
         
         // Try to access the raw response object more thoroughly
@@ -295,7 +295,7 @@ export default async function handler(req, res) {
       });
       
     } catch (genError) {
-      console.error('❌ GoogleProvider: Image generation error:', genError);
+      console.error('Image generation error:', genError);
       console.error('Error details:', {
         status: genError.status,
         statusText: genError.statusText,
@@ -316,7 +316,7 @@ export default async function handler(req, res) {
             genError.message.includes('rate limit') ||
             genError.message.includes('too many requests')
           ))) {
-        console.log('⚠️ GoogleProvider: API quota/rate limit exceeded');
+        console.log('API quota/rate limit exceeded');
         return res.status(200).json({ 
           success: false,
           error: 'API quota exceeded. Please wait a moment and try again, or try switching to a different model.',
@@ -327,7 +327,7 @@ export default async function handler(req, res) {
       // Authentication errors (401, 403)
       if (genError.status === 401 || genError.status === 403 ||
           genError.code === 'UNAUTHENTICATED' || genError.code === 'PERMISSION_DENIED') {
-        console.log('⚠️ GoogleProvider: Authentication/permission error');
+        console.log('Authentication/permission error');
         return res.status(200).json({
           success: false,
           error: 'Authentication failed. Please check your API key configuration.',
@@ -337,7 +337,7 @@ export default async function handler(req, res) {
       
       // Model not found or unavailable (404)
       if (genError.status === 404 || genError.code === 'NOT_FOUND') {
-        console.log('⚠️ GoogleProvider: Model not found or unavailable');
+        console.log('Model not found or unavailable');
         return res.status(200).json({
           success: false,
           error: 'The selected model is not available. Please try a different model.',
@@ -347,7 +347,7 @@ export default async function handler(req, res) {
       
       // Invalid request errors (400)
       if (genError.status === 400 || genError.code === 'INVALID_ARGUMENT') {
-        console.log('⚠️ GoogleProvider: Invalid request');
+        console.log('Invalid request');
         return res.status(200).json({
           success: false,
           error: 'Invalid request. Please check your input and try again.',
@@ -358,7 +358,7 @@ export default async function handler(req, res) {
       
       // Server errors (500+)
       if (genError.status >= 500 || genError.code === 'INTERNAL') {
-        console.log('⚠️ GoogleProvider: Google AI server error');
+        console.log('Google AI server error');
         return res.status(200).json({
           success: false,
           error: 'Google AI service is temporarily unavailable. Please try again in a moment.',
@@ -368,7 +368,7 @@ export default async function handler(req, res) {
       
       // Generic network errors
       if (genError.code === 'NETWORK_ERROR' || genError.message?.includes('network')) {
-        console.log('⚠️ GoogleProvider: Network error');
+        console.log('Network error');
         return res.status(200).json({
           success: false,
           error: 'Network error occurred. Please check your connection and try again.',
@@ -379,7 +379,7 @@ export default async function handler(req, res) {
       // Safety filter or content policy violations
       if (genError.message?.includes('safety') || genError.message?.includes('policy') || 
           genError.message?.includes('blocked') || genError.code === 'SAFETY') {
-        console.log('⚠️ GoogleProvider: Content policy violation');
+        console.log('Content policy violation');
         return res.status(200).json({
           success: false,
           error: 'Your request was blocked by content safety filters. Please try a different prompt.',

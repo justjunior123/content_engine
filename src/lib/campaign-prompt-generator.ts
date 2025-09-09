@@ -148,9 +148,9 @@ const selectBestAssetsForProduct = (productName: string, allAssets: AssetData[])
     
     if (selectedAsset) {
       productAssets.push(selectedAsset);
-      console.log(`🎯 Selected ${assetType} for ${productName}: ${selectedAsset.filename}`);
+      console.log(`Selected ${assetType} for ${productName}: ${selectedAsset.filename}`);
     } else {
-      console.log(`📝 No ${assetType} asset found for ${productName}`);
+      console.log(`No ${assetType} asset found for ${productName}`);
     }
   }
   
@@ -165,17 +165,17 @@ export const generateMultiImagePrompts = async (
   const results: { prompt: EnhancedCampaignPrompt; assets: AssetData[] }[] = [];
   const aspectRatios: ('1:1' | '9:16' | '16:9')[] = ['1:1', '9:16', '16:9'];
   
-  console.log(`🧠 Generating multi-image prompts for campaign: ${brief.campaignId}`);
-  console.log(`📦 Products: ${brief.products.length}, Available assets: ${assets.length}`);
+  console.log(`Generating multi-image prompts for campaign: ${brief.campaignId}`);
+  console.log(`Products: ${brief.products.length}, Available assets: ${assets.length}`);
   
   for (const product of brief.products) {
-    console.log(`🏷️ Processing product: ${product.name} (${product.category})`);
+    console.log(`Processing product: ${product.name} (${product.category})`);
     
     // Select best assets for this product
     const productAssets = selectBestAssetsForProduct(product.name, assets);
     
     for (const ratio of aspectRatios) {
-      console.log(`📐 Generating ${ratio} multi-image prompt for ${product.name}...`);
+      console.log(`Generating ${ratio} multi-image prompt for ${product.name}...`);
       
       const aspectConfig = ASPECT_RATIO_CONFIGS[ratio];
       
@@ -216,10 +216,10 @@ export const generateMultiImagePrompts = async (
           assets: productAssets
         });
         
-        console.log(`✅ Generated ${ratio} multi-image prompt for ${product.name} with ${productAssets.length} assets`);
+        console.log(`Generated ${ratio} multi-image prompt for ${product.name} with ${productAssets.length} assets`);
         
       } catch (error) {
-        console.error(`❌ Failed to generate ${ratio} multi-image prompt for ${product.name}:`, error);
+        console.error(`Failed to generate ${ratio} multi-image prompt for ${product.name}:`, error);
         
         // Fallback to text-only prompt
         const fallbackPrompt = generateFallbackPrompt(product, ratio, brief);
@@ -238,7 +238,7 @@ export const generateMultiImagePrompts = async (
           assets: []
         });
         
-        console.log(`🔄 Used fallback text-only prompt for ${product.name} ${ratio}`);
+        console.log(`Used fallback text-only prompt for ${product.name} ${ratio}`);
       }
     }
   }
@@ -310,14 +310,14 @@ export const generateCampaignPrompts = async (brief: CampaignBrief): Promise<Cam
   const prompts: CampaignPrompt[] = [];
   const aspectRatios: ('1:1' | '9:16' | '16:9')[] = ['1:1', '9:16', '16:9'];
   
-  console.log(`🧠 Generating smart prompts for campaign: ${brief.campaignId}`);
-  console.log(`📦 Products: ${brief.products.length}, Total prompts: ${brief.products.length * 3}`);
+  console.log(`Generating smart prompts for campaign: ${brief.campaignId}`);
+  console.log(`Products: ${brief.products.length}, Total prompts: ${brief.products.length * 3}`);
   
   for (const product of brief.products) {
-    console.log(`🏷️ Processing product: ${product.name} (${product.category})`);
+    console.log(`Processing product: ${product.name} (${product.category})`);
     
     for (const ratio of aspectRatios) {
-      console.log(`📐 Generating ${ratio} prompt for ${product.name}...`);
+      console.log(`Generating ${ratio} prompt for ${product.name}...`);
       
       const aspectConfig = ASPECT_RATIO_CONFIGS[ratio];
       
@@ -347,10 +347,10 @@ export const generateCampaignPrompts = async (brief: CampaignBrief): Promise<Cam
           targetAudience: brief.targetAudience
         });
         
-        console.log(`✅ Generated ${ratio} prompt for ${product.name} (${generatedPrompt.length} chars)`);
+        console.log(`Generated ${ratio} prompt for ${product.name} (${generatedPrompt.length} chars)`);
         
       } catch (error) {
-        console.error(`❌ Failed to generate ${ratio} prompt for ${product.name}:`, error);
+        console.error(`Failed to generate ${ratio} prompt for ${product.name}:`, error);
         
         // Fallback prompt if LangChain fails
         const fallbackPrompt = generateFallbackPrompt(product, ratio, brief);
@@ -363,12 +363,12 @@ export const generateCampaignPrompts = async (brief: CampaignBrief): Promise<Cam
           targetAudience: brief.targetAudience
         });
         
-        console.log(`🔄 Used fallback prompt for ${product.name} ${ratio}`);
+        console.log(`Used fallback prompt for ${product.name} ${ratio}`);
       }
     }
   }
   
-  console.log(`✅ Campaign prompt generation complete: ${prompts.length} prompts generated`);
+  console.log(`Campaign prompt generation complete: ${prompts.length} prompts generated`);
   return prompts;
 };
 
@@ -404,7 +404,7 @@ export const validateAndEnhanceBrief = (brief: CampaignBrief): CampaignBrief => 
   
   // Ensure color palette is comprehensive
   if (brief.brandGuidelines.colors.length < 2) {
-    console.warn(`⚠️ Limited color palette (${brief.brandGuidelines.colors.length} colors) - consider adding more brand colors for better visual consistency`);
+    console.warn(`Limited color palette (${brief.brandGuidelines.colors.length} colors) - consider adding more brand colors for better visual consistency`);
   }
   
   return brief;
