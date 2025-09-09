@@ -6,8 +6,12 @@ import {
   createReviewFlag, 
   generateCampaignId, 
   ensureDirectoryStructure,
-  createDirectoryIndex
+  createDirectoryIndex,
+  loadAssetsAsBase64,
+  getMimeType
 } from '@/src/lib/campaign-file-manager';
+
+import { generateMultiImagePrompts } from '@/src/lib/campaign-prompt-generator';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -16,14 +20,26 @@ export default async function handler(req, res) {
 
   const { campaignBrief, campaignPrompts } = req.body;
   
-  if (!campaignBrief || !Array.isArray(campaignPrompts) || campaignPrompts.length === 0) {
+  if (!campaignBrief) {
     return res.status(400).json({ 
-      error: 'Campaign brief and prompts are required' 
+      error: 'Campaign brief is required' 
     });
   }
 
   console.log(`🚀 Starting campaign generation: ${campaignBrief.campaignId}`);
-  console.log(`📦 Total prompts to process: ${campaignPrompts.length}`);
+  console.log(`🎨 Using multi-image asset generation`);
+  
+  // Load available assets
+  const availableAssets = await loadAssetsAsBase64(
+    campaignBrief.products.map(p => p.name)
+  );
+  console.log(`📦 Loaded ${availableAssets.length} assets from input/assets/`);
+  
+  // Generate multi-image prompts with asset awareness
+  const enhancedPrompts = await generateMultiImagePrompts(campaignBrief, availableAssets);
+  const totalPrompts = enhancedPrompts.length;
+  console.log(`📝 Generated ${totalPrompts} multi-image prompts`);
+  console.log(`🎯 Total prompts to process: ${totalPrompts}`);
 
   try {
     // Ensure directory structure exists
@@ -46,65 +62,84 @@ export default async function handler(req, res) {
     console.log(`🎯 Starting sequential generation for campaign: ${campaignId}`);
     
     // Sequential generation to avoid quota limits
-    for (const [index, prompt] of campaignPrompts.entries()) {
+    for (const [index, promptData] of enhancedPrompts.entries()) {
+      const prompt = promptData.prompt;
+      const assets = promptData.assets || [];
+      
       const progress = {
         type: 'progress',
         current: index + 1,
-        total: campaignPrompts.length,
+        total: totalPrompts,
         product: prompt.productName,
         aspectRatio: prompt.aspectRatio,
         status: 'generating',
-        campaignId
+        campaignId,
+        assetsUsed: assets.length
       };
       
-      console.log(`🎨 [${index + 1}/${campaignPrompts.length}] Generating: ${prompt.productName} ${prompt.aspectRatio}`);
+      const generationMethod = assets.length > 0 ? 'multi-image' : 'text-only';
+      console.log(`🎨 [${index + 1}/${totalPrompts}] Generating ${generationMethod}: ${prompt.productName} ${prompt.aspectRatio}`);
+      if (assets.length > 0) {
+        console.log(`🖼️ Using ${assets.length} assets: ${assets.map(a => a.filename).join(', ')}`);
+      }
       
       // Send progress update
       res.write(`data: ${JSON.stringify(progress)}\\n\\n`);
       
       try {
-        // Generate single image using existing logic
-        const imageResult = await generateSingleImage(prompt.generatedPrompt);
+        // Generate image with or without assets
+        const imageResult = assets.length > 0 
+          ? await generateWithMultipleAssets(prompt.generatedPrompt, assets)
+          : await generateSingleImage(prompt.generatedPrompt);
         
         if (!imageResult.success) {
           throw new Error(imageResult.error || 'Image generation failed');
         }
         
-        // Save asset with organized structure
+        // Save asset with organized structure and asset metadata
         const assetPath = await saveAssetWithMetadata({
           campaignId,
           productName: prompt.productName,
           aspectRatio: prompt.aspectRatio,
           imageData: imageResult.imageData,
           prompt: prompt.generatedPrompt,
-          brandContext: prompt.brandContext
+          brandContext: prompt.brandContext,
+          usedAssets: assets.map(a => a.filename)
         });
         
         const result = {
           ...prompt,
           assetPath,
           success: true,
-          generatedAt: new Date().toISOString()
+          generatedAt: new Date().toISOString(),
+          usedAssets: assets.map(a => a.filename),
+          generationMethod: assets.length > 0 ? 'multi-image-composition' : 'text-to-image'
         };
         
         results.push(result);
         successCount++;
         
-        console.log(`✅ [${index + 1}/${campaignPrompts.length}] Success: ${prompt.productName} ${prompt.aspectRatio}`);
+        console.log(`✅ [${index + 1}/${totalPrompts}] Success: ${prompt.productName} ${prompt.aspectRatio} (${generationMethod})`);
         
         // Send completion update
-        const completedProgress = { ...progress, status: 'completed' };
+        const completedProgress = { 
+          ...progress, 
+          status: 'completed',
+          generationMethod: assets.length > 0 ? 'multi-image-composition' : 'text-to-image'
+        };
         res.write(`data: ${JSON.stringify(completedProgress)}\\n\\n`);
         
       } catch (genError) {
-        console.error(`❌ [${index + 1}/${campaignPrompts.length}] Failed: ${prompt.productName} ${prompt.aspectRatio}:`, genError);
+        console.error(`❌ [${index + 1}/${totalPrompts}] Failed: ${prompt.productName} ${prompt.aspectRatio}:`, genError);
         
         const result = {
           ...prompt,
           assetPath: null,
           success: false,
           error: genError.message || 'Unknown generation error',
-          generatedAt: new Date().toISOString()
+          generatedAt: new Date().toISOString(),
+          usedAssets: assets.map(a => a.filename),
+          generationMethod: assets.length > 0 ? 'multi-image-composition' : 'text-to-image'
         };
         
         results.push(result);
@@ -123,7 +158,7 @@ export default async function handler(req, res) {
       }
       
       // Brief delay between generations to avoid rate limits
-      if (index < campaignPrompts.length - 1) {
+      if (index < totalPrompts - 1) {
         await new Promise(resolve => setTimeout(resolve, 1000));
       }
     }
@@ -180,7 +215,116 @@ export default async function handler(req, res) {
   }
 }
 
-// Generate single image using existing google-generate-image logic
+// Generate image with multiple assets using Gemini's multi-image composition
+async function generateWithMultipleAssets(prompt, assets) {
+  try {
+    console.log(`🖼️ Generating with ${assets.length} input assets`);
+    
+    // Check if environment variable exists
+    const apiKey = process.env.GOOGLE_AI_API_KEY;
+    if (!apiKey) {
+      throw new Error('GOOGLE_AI_API_KEY environment variable is not set');
+    }
+
+    // Initialize Google AI SDK
+    const { GoogleGenAI } = await import('@google/genai');
+    const genAI = new GoogleGenAI({ apiKey });
+    
+    // Use gemini-2.0 model for multi-image generation
+    const model = 'gemini-2.0-flash-preview-image-generation';
+    
+    console.log(`🎨 Using model: ${model} with multi-image composition`);
+    
+    // Build contents array with text + multiple images
+    const contents = [prompt]; // Text prompt first
+    
+    // Add each asset as image input
+    for (const asset of assets) {
+      contents.push({
+        inlineData: {
+          mimeType: getMimeType(asset.filename),
+          data: asset.base64Data
+        }
+      });
+    }
+    
+    console.log(`📝 Sending ${contents.length} content items (1 text + ${assets.length} images)`);
+    
+    let result;
+    if (model === 'gemini-2.0-flash-preview-image-generation') {
+      // 2.0 model requires response modalities configuration
+      const { Modality } = await import('@google/genai');
+      result = await genAI.models.generateContent({
+        model: model,
+        contents: contents,
+        config: {
+          responseModalities: [Modality.TEXT, Modality.IMAGE]
+        }
+      });
+    } else {
+      // Fallback for other models
+      result = await genAI.models.generateContent({
+        model: model,
+        contents: contents
+      });
+    }
+    
+    // Extract image data using existing parsing logic
+    let imageData = null;
+    
+    if (result.candidates && result.candidates[0] && result.candidates[0].content && result.candidates[0].content.parts) {
+      const parts = result.candidates[0].content.parts;
+      
+      for (const [index, part] of parts.entries()) {
+        // Strategy 1: Check part.inlineData.data (most common)
+        if (part.inlineData && part.inlineData.data) {
+          imageData = part.inlineData.data;
+          console.log(`✅ Multi-image composition successful via inlineData.data (${imageData.length} chars)`);
+          break;
+        }
+        
+        // Strategy 2: Check alternative naming
+        if (part.inline_data && part.inline_data.data) {
+          imageData = part.inline_data.data;
+          console.log(`✅ Multi-image composition successful via inline_data.data (${imageData.length} chars)`);
+          break;
+        }
+      }
+    }
+    
+    if (!imageData) {
+      throw new Error('No image data returned from multi-image composition');
+    }
+    
+    return {
+      success: true,
+      imageData: imageData
+    };
+    
+  } catch (genError) {
+    console.error('Multi-image generation error:', genError);
+    
+    // Handle common Google AI errors gracefully
+    let errorMessage = genError.message || 'Unknown error';
+    
+    if (genError.status === 429) {
+      errorMessage = 'API quota exceeded - please wait and try again';
+    } else if (genError.status === 401 || genError.status === 403) {
+      errorMessage = 'Authentication failed - check API key';
+    } else if (genError.status === 404) {
+      errorMessage = 'Model not found or unavailable';
+    } else if (genError.status >= 500) {
+      errorMessage = 'Google AI service temporarily unavailable';
+    }
+    
+    return {
+      success: false,
+      error: errorMessage
+    };
+  }
+}
+
+// Generate single image using existing google-generate-image logic (fallback)
 async function generateSingleImage(prompt) {
   try {
     console.log(`📸 Generating image with prompt length: ${prompt.length} chars`);

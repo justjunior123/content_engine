@@ -3,7 +3,7 @@
 
 import fs from 'fs/promises';
 import path from 'path';
-import { CampaignBrief, CampaignPrompt, GeneratedAsset, ReviewStatus } from '@/types/campaign.types';
+import { CampaignBrief, CampaignPrompt, GeneratedAsset, ReviewStatus, AssetData } from '@/types/campaign.types';
 
 // Ensure directory structure exists
 export const ensureDirectoryStructure = async () => {
@@ -37,6 +37,7 @@ export const saveAssetWithMetadata = async (params: {
   imageData: string;
   prompt: string;
   brandContext: string;
+  usedAssets?: string[];
 }): Promise<string> => {
   const { campaignId, productName, aspectRatio, imageData, prompt, brandContext } = params;
   
@@ -64,7 +65,9 @@ export const saveAssetWithMetadata = async (params: {
       brandContext: JSON.parse(brandContext),
       imagePath: path.relative(process.cwd(), imagePath),
       fileSize: buffer.length,
-      format: 'png'
+      format: 'png',
+      usedAssets: params.usedAssets || [],
+      generationMethod: params.usedAssets && params.usedAssets.length > 0 ? 'multi-image-composition' : 'text-to-image'
     };
     
     const metadataPath = path.join(basePath, 'metadata.json');
@@ -196,6 +199,87 @@ export const createDirectoryIndex = async (campaignId: string): Promise<void> =>
   } catch (error) {
     console.error(`❌ Failed to create directory index for ${campaignId}:`, error);
   }
+};
+
+// Load assets as base64 for multi-image generation
+export const loadAssetsAsBase64 = async (productNames: string[]): Promise<AssetData[]> => {
+  const assetDirs = ['logos', 'backgrounds', 'product-images'];
+  const loadedAssets: AssetData[] = [];
+  
+  console.log('🔍 Scanning input/assets/ for available assets...');
+  
+  for (const dir of assetDirs) {
+    const dirPath = path.join(process.cwd(), 'input/assets', dir);
+    try {
+      const files = await fs.readdir(dirPath);
+      console.log(`📁 Scanning ${dir}/: found ${files.length} files`);
+      
+      for (const file of files) {
+        if (file.match(/\.(png|jpg|jpeg|svg)$/i) && !file.startsWith('.')) {
+          try {
+            const filePath = path.join(dirPath, file);
+            const buffer = await fs.readFile(filePath);
+            const base64 = buffer.toString('base64');
+            
+            // Match assets to products using filename fuzzy matching
+            const productMatch = findBestProductMatch(file, productNames);
+            
+            loadedAssets.push({
+              type: dir.slice(0, -1) as 'logo' | 'background' | 'product-image', // Remove 's' from plural
+              filename: file,
+              base64Data: base64,
+              productMatch,
+              filePath: path.relative(process.cwd(), filePath)
+            });
+            
+            console.log(`✅ Loaded ${dir}/${file} (${Math.round(buffer.length / 1024)}KB)${productMatch ? ` -> ${productMatch}` : ''}`);
+          } catch (fileError) {
+            console.warn(`⚠️ Failed to load ${dir}/${file}:`, fileError instanceof Error ? fileError.message : fileError);
+          }
+        }
+      }
+    } catch (dirError) {
+      console.warn(`⚠️ Could not read directory ${dir}:`, dirError instanceof Error ? dirError.message : dirError);
+    }
+  }
+  
+  console.log(`📦 Total assets loaded: ${loadedAssets.length}`);
+  return loadedAssets;
+};
+
+// Find best product match for asset filename using fuzzy matching
+const findBestProductMatch = (filename: string, productNames: string[]): string | undefined => {
+  const cleanFilename = filename.toLowerCase().replace(/[^a-z0-9\s]/g, ' ');
+  
+  for (const productName of productNames) {
+    const cleanProductName = productName.toLowerCase().replace(/[^a-z0-9\s]/g, ' ');
+    const productWords = cleanProductName.split(/\s+/);
+    
+    // Check if any product words appear in filename
+    const matchingWords = productWords.filter(word => 
+      word.length > 2 && cleanFilename.includes(word)
+    );
+    
+    // If majority of product words match, consider it a match
+    if (matchingWords.length > 0 && matchingWords.length >= Math.ceil(productWords.length / 2)) {
+      return productName;
+    }
+  }
+  
+  return undefined;
+};
+
+
+// Get MIME type for asset file
+export const getMimeType = (filename: string): string => {
+  const ext = filename.split('.').pop()?.toLowerCase();
+  const mimeTypes: Record<string, string> = {
+    'png': 'image/png',
+    'jpg': 'image/jpeg', 
+    'jpeg': 'image/jpeg',
+    'svg': 'image/svg+xml'
+  };
+  return mimeTypes[ext || ''] || 'image/png';
 };
 
 // Validate campaign output structure

@@ -24,12 +24,31 @@ export interface CampaignBrief {
   brandGuidelines: BrandGuidelines;
 }
 
+export interface AssetData {
+  type: 'logo' | 'background' | 'product-image';
+  filename: string;
+  base64Data: string;
+  productMatch?: string;
+  filePath: string;
+}
+
 export interface CampaignPrompt {
   productName: string;
   aspectRatio: '1:1' | '9:16' | '16:9';
   generatedPrompt: string;
   brandContext: string;
   targetAudience: string;
+  associatedAssets?: AssetData[];
+}
+
+export interface EnhancedCampaignPrompt extends CampaignPrompt {
+  associatedAssets: AssetData[];
+}
+
+export interface AssetMetadata {
+  usedAssets: string[];
+  assetSources: Record<string, string>; // filename -> type mapping
+  generationMethod: 'text-to-image' | 'multi-image-composition';
 }
 
 export interface CampaignProgress {
@@ -48,6 +67,8 @@ export interface GeneratedAsset {
   prompt: string;
   success: boolean;
   error?: string;
+  usedAssets?: string[];
+  generationMethod?: 'text-to-image' | 'multi-image-composition';
 }
 
 export interface CampaignResult {
