@@ -4,8 +4,16 @@
 # This script is triggered by cron to detect unreviewed campaigns
 # and queue them for Claude Desktop to process
 
-# Configuration
-PROJECT_ROOT="/Users/thinking/Documents/coding/projects/content_engine"
+# Configuration - Dynamic Path Detection
+# Detect project root by finding the directory containing this script and going up one level
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+# Allow override via environment variable for custom deployments
+if [ -n "$CONTENT_ENGINE_ROOT" ]; then
+    PROJECT_ROOT="$CONTENT_ENGINE_ROOT"
+fi
+
 OUTPUT_DIR="$PROJECT_ROOT/output"
 TEMP_DIR="$PROJECT_ROOT/temp"
 QUEUE_FILE="$TEMP_DIR/review_queue.txt"
@@ -34,12 +42,20 @@ send_notification() {
 
 # Main execution
 main() {
+    # Validate project structure
+    if [ ! -f "$PROJECT_ROOT/package.json" ]; then
+        echo "ERROR: Not a valid Content Engine project root: $PROJECT_ROOT"
+        echo "Expected to find package.json in project root"
+        exit 1
+    fi
+    
     # Ensure temp directory exists
     if [ ! -d "$TEMP_DIR" ]; then
         mkdir -p "$TEMP_DIR"
     fi
     
     log_message "Starting automated review check"
+    log_message "Project root: $PROJECT_ROOT"
     
     # Ensure output directory exists
     if [ ! -d "$OUTPUT_DIR" ]; then

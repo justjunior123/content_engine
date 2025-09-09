@@ -143,8 +143,138 @@ Place existing brand assets in `input/assets/`:
 - `/api/validate-google-key` - API key validation
 - `/api/initialize-google-provider` - Provider setup
 
+## 🔧 Developer Setup Guide
+
+### Prerequisites
+- **Node.js 18+** - Download from [nodejs.org](https://nodejs.org/)
+- **Google AI API Key** - Get from [Google AI Studio](https://aistudio.google.com/app/apikey)
+- **Claude Desktop** (Optional) - For automated review system
+
+### Step-by-Step Setup
+
+#### 1. Clone and Install
+```bash
+git clone [your-repo-url]
+cd content_engine
+npm install
+```
+
+#### 2. Environment Configuration
+```bash
+# Copy the example environment file
+cp .env.example .env.local
+
+# Edit .env.local and add your Google AI API key
+# GOOGLE_AI_API_KEY=your_actual_api_key_here
+```
+
+#### 3. Verify Installation
+```bash
+# Start development server
+npm run dev
+
+# Visit http://localhost:3000
+# The app should load without errors
+```
+
+#### 4. Test Basic Functionality
+- Switch to "Image Mode"
+- Try generating a simple image with prompt: "A red apple on a wooden table"
+- If successful, your setup is working correctly
+
+### Automated Review System (Optional)
+
+The Content Engine includes an automated asset review system that works with Claude Desktop via MCP tools.
+
+#### Prerequisites for Review System
+- **Claude Desktop** installed and running
+- **MCP tools** configured for file access
+- **Gmail access** (for Claude to create draft emails)
+
+#### Setup Automated Reviews
+
+1. **Verify Script Permissions**
+   ```bash
+   # Make sure the review script is executable
+   chmod +x scripts/auto-review.sh
+   
+   # Test the script manually
+   ./scripts/auto-review.sh
+   ```
+
+2. **Configure Cron for Automated Monitoring**
+   ```bash
+   # Edit your crontab
+   crontab -e
+   
+   # Add a schedule (example: every 30 minutes during business hours)
+   # Replace [PROJECT_ROOT] with your actual project path
+   */30 9-17 * * 1-5 [PROJECT_ROOT]/scripts/auto-review.sh
+   ```
+
+3. **Test the Complete Workflow**
+   - Generate a campaign using the web interface
+   - Wait for cron to detect the unreviewed assets
+   - Tell Claude Desktop: "Check the review queue and process any pending campaigns"
+   - Claude should review assets and create a Gmail draft
+
+#### Environment Variables for Custom Deployments
+```bash
+# Optional: Override project root for the review script
+export CONTENT_ENGINE_ROOT="/custom/path/to/content_engine"
+```
+
+### Common Setup Issues
+
+#### Issue: "GOOGLE_AI_API_KEY environment variable is not set"
+**Solution**: Ensure `.env.local` exists and contains your API key
+```bash
+# Check if file exists
+ls -la .env.local
+
+# Verify contents (without showing the actual key)
+grep "GOOGLE_AI_API_KEY" .env.local
+```
+
+#### Issue: Script not found in cron
+**Solution**: Use absolute paths in crontab
+```bash
+# Wrong (relative path)
+*/30 * * * * scripts/auto-review.sh
+
+# Correct (absolute path)  
+*/30 * * * * /home/user/content_engine/scripts/auto-review.sh
+```
+
+#### Issue: Claude Desktop not processing queue
+**Solution**: Verify Claude has file access permissions
+- Check that Claude Desktop is running
+- Verify MCP file access is configured
+- Ensure `temp/review_queue.txt` exists and contains campaign paths
+
+### Platform-Specific Notes
+
+#### macOS Users
+- Grant Terminal "Full Disk Access" in System Preferences > Privacy & Security
+- Desktop notifications require accessibility permissions
+- Use the provided `.sh` scripts directly
+
+#### Linux Users  
+- Install `notify-send` for desktop notifications: `sudo apt-get install libnotify-bin`
+- Ensure cron service is running: `systemctl status cron`
+- Use bash shell for scripts
+
+#### Windows Users
+- Use Git Bash or WSL for shell scripts
+- Install Windows Subsystem for Linux for best compatibility
+- Use the `dev:win`, `build:win`, `start:win` npm scripts
+
 ## 📄 Documentation
 
+- **Automated Review System**: See `AUTOMATED_REVIEW_SYSTEM.md`
+- **Project Architecture**: See `ARCHITECTURE.md` 
+- **Workflow Guide**: See `WORKFLOW.md`
+- **Component Details**: See `COMPONENTS.md`
 - Brand asset requirements: See README files in `input/assets/` subdirectories
 - Campaign brief format: See `input/briefs/adobe_tech_campaign.json`
 - Brand guidelines: See `config/brand-guidelines.example.json`

@@ -51,7 +51,7 @@ This system provides automated review capabilities for the Creative Automation P
 crontab -e
 
 # Add a line (example: every 30 minutes during business hours)
-*/30 9-17 * * 1-5 /Users/thinking/Documents/coding/projects/content_engine/scripts/auto-review.sh
+*/30 9-17 * * 1-5 [PROJECT_ROOT]/scripts/auto-review.sh
 ```
 
 ### 2. Test the Detection Script
