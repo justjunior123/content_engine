@@ -1,0 +1,118 @@
+# CRONTAB CONFIGURATION EXAMPLES
+# Automated Asset Review System
+
+# To edit your crontab, run: crontab -e
+# To view current crontab, run: crontab -l
+
+# EXAMPLE SCHEDULES FOR AUTO-REVIEW SCRIPT
+# Replace with your actual project path
+
+# -----------------------------------------------------------
+# FREQUENT MONITORING (Good for active development/testing)
+# -----------------------------------------------------------
+
+# Every 15 minutes during business hours (9 AM - 5 PM, Monday-Friday)
+*/15 9-17 * * 1-5 /Users/thinking/Documents/coding/projects/content_engine/scripts/auto-review.sh
+
+# Every 30 minutes during extended hours (8 AM - 8 PM, Monday-Friday)  
+*/30 8-20 * * 1-5 /Users/thinking/Documents/coding/projects/content_engine/scripts/auto-review.sh
+
+# -----------------------------------------------------------
+# MODERATE MONITORING (Good for regular production use)
+# -----------------------------------------------------------
+
+# Every hour during business hours
+0 9-17 * * 1-5 /Users/thinking/Documents/coding/projects/content_engine/scripts/auto-review.sh
+
+# Every 2 hours during extended hours
+0 8-20/2 * * 1-5 /Users/thinking/Documents/coding/projects/content_engine/scripts/auto-review.sh
+
+# -----------------------------------------------------------
+# MINIMAL MONITORING (Good for low-volume campaigns)
+# -----------------------------------------------------------
+
+# Twice per day (morning and afternoon)
+0 9,15 * * 1-5 /Users/thinking/Documents/coding/projects/content_engine/scripts/auto-review.sh
+
+# Once per day at 10 AM on weekdays
+0 10 * * 1-5 /Users/thinking/Documents/coding/projects/content_engine/scripts/auto-review.sh
+
+# -----------------------------------------------------------
+# 24/7 MONITORING (Good for global campaigns)
+# -----------------------------------------------------------
+
+# Every hour, all day, every day
+0 * * * * /Users/thinking/Documents/coding/projects/content_engine/scripts/auto-review.sh
+
+# Every 4 hours, all day, every day
+0 */4 * * * /Users/thinking/Documents/coding/projects/content_engine/scripts/auto-review.sh
+
+# -----------------------------------------------------------
+# WEEKEND COVERAGE (Good for global teams)
+# -----------------------------------------------------------
+
+# Business hours on weekdays, reduced hours on weekends
+*/30 9-17 * * 1-5 /Users/thinking/Documents/coding/projects/content_engine/scripts/auto-review.sh
+0 10,16 * * 6-7 /Users/thinking/Documents/coding/projects/content_engine/scripts/auto-review.sh
+
+# -----------------------------------------------------------
+# CUSTOM TIMING EXAMPLES
+# -----------------------------------------------------------
+
+# Peak campaign periods - every 10 minutes during launch windows
+*/10 9-11,14-16 * * 1-5 /Users/thinking/Documents/coding/projects/content_engine/scripts/auto-review.sh
+
+# Pre-launch intensive monitoring (useful for campaign deadlines)
+*/5 8-18 * * 1-5 /Users/thinking/Documents/coding/projects/content_engine/scripts/auto-review.sh
+
+# -----------------------------------------------------------
+# MAINTENANCE TASKS (Optional)
+# -----------------------------------------------------------
+
+# Clean up old log files (runs at midnight on Sundays)
+0 0 * * 0 find /tmp -name "claude_review_log.txt" -mtime +7 -delete
+
+# Archive completed campaigns (runs at 1 AM on first day of month)  
+0 1 1 * * find /Users/thinking/Documents/coding/projects/content_engine/output -name "review_status.json" -exec grep -l '"claudeReviewed": true' {} \; | head -10 | xargs -I {} dirname {} | xargs -I {} tar -czf /Users/thinking/Documents/coding/projects/content_engine/archives/{}.tar.gz {}
+
+# -----------------------------------------------------------
+# INSTALLATION INSTRUCTIONS
+# -----------------------------------------------------------
+
+# 1. Choose your preferred schedule from above
+# 2. Open crontab editor: crontab -e
+# 3. Add your chosen line(s)
+# 4. Save and exit (in vim: :wq)
+# 5. Verify installation: crontab -l
+
+# -----------------------------------------------------------
+# TROUBLESHOOTING
+# -----------------------------------------------------------
+
+# Check if cron is running: ps aux | grep cron
+# View cron logs: tail -f /var/log/cron.log (Linux) or tail -f /var/log/system.log (macOS)
+# Test script manually: /Users/thinking/Documents/coding/projects/content_engine/scripts/auto-review.sh
+# Check script logs: tail -f /tmp/claude_review_log.txt
+
+# -----------------------------------------------------------
+# ENVIRONMENT CONSIDERATIONS
+# -----------------------------------------------------------
+
+# For macOS users:
+# - Ensure Terminal has Full Disk Access in System Preferences > Privacy & Security
+# - The script will automatically attempt to send desktop notifications
+# - cron may need permissions to access certain directories
+
+# For Linux users:
+# - Replace osascript notifications with notify-send (already included in script)
+# - Adjust paths if necessary
+
+# -----------------------------------------------------------
+# RECOMMENDED STARTING CONFIGURATION
+# -----------------------------------------------------------
+
+# For most users, start with this moderate schedule:
+# */30 9-17 * * 1-5 /Users/thinking/Documents/coding/projects/content_engine/scripts/auto-review.sh
+
+# This runs every 30 minutes during business hours on weekdays,
+# providing good coverage without being too intrusive.

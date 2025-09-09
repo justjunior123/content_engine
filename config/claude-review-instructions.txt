@@ -1,0 +1,180 @@
+# AUTOMATED ASSET REVIEW PROTOCOL
+# Instructions for Claude Desktop via MCP Tools
+
+## ACTIVATION TRIGGER
+When you are asked to check the review queue or process pending campaigns, follow this protocol:
+
+## STEP 1: CHECK REVIEW QUEUE
+1. Read the file `temp/review_queue.txt` (in the project directory)
+2. If empty or non-existent, respond: "No campaigns in review queue"
+3. If contains campaign paths, process the FIRST campaign path listed
+
+## STEP 2: CAMPAIGN ANALYSIS
+For the campaign directory found in the queue:
+
+### A. Read Campaign Context
+- Read `campaign_brief.json` to understand:
+  - Products being marketed
+  - Brand guidelines (colors, fonts, tone)
+  - Target audience and region  
+  - Campaign message
+  - Prohibited content list
+  - Required elements list
+
+### B. Inventory All Assets
+- List all PNG files in the campaign directory structure
+- Note the format types: 1:1 (square), 9:16 (story/vertical), 16:9 (landscape)
+- Read associated metadata.json files for generation details
+
+## STEP 3: COMPREHENSIVE REVIEW
+For EACH PNG asset, evaluate on these criteria:
+
+### Brand Compliance (Weight: 40%)
+- **Colors**: Do the colors match the brand guidelines?
+- **Required Elements**: Are logos, copyright notices, and required text present?
+- **Brand Tone**: Does the visual style match the specified tone (e.g., "professional yet inspiring")?
+- **Font Usage**: Are the correct brand fonts being used in text overlays?
+
+### Content Appropriateness (Weight: 30%)
+- **Prohibited Content**: Check against the prohibited content list
+- **Cultural Sensitivity**: Appropriate for target region and audience
+- **Legal Compliance**: No misleading claims or inappropriate representations
+- **Message Clarity**: Campaign message is clear and prominent
+
+### Visual Quality (Weight: 20%)
+- **Professional Appearance**: Clean, polished, marketing-ready aesthetic
+- **Composition**: Well-balanced, visually appealing layout
+- **Image Resolution**: Sharp, high-quality appearance
+- **Text Legibility**: All text is readable at intended viewing size
+
+### Format Optimization (Weight: 10%)
+- **Aspect Ratio Compliance**: Correctly formatted for intended platform
+- **Safe Areas**: Important elements not in crop-risk zones
+- **Platform Best Practices**: Optimized for social media viewing
+
+## STEP 4: SCORING SYSTEM
+Rate each asset on a 1-10 scale:
+
+- **10**: Perfect - Ready for immediate deployment
+- **9**: Excellent - Minor aesthetic enhancements possible
+- **8**: Very Good - Small brand compliance tweaks recommended
+- **7**: Good - Some adjustments needed but fundamentally sound
+- **6**: Acceptable - Moderate revisions required
+- **5**: Below Standard - Significant issues need addressing
+- **4**: Poor - Major brand compliance problems
+- **3**: Unacceptable - Substantial rework required
+- **2**: Severely Deficient - Complete redesign needed
+- **1**: Failed - Does not meet basic requirements
+
+## STEP 5: UPDATE REVIEW STATUS
+Update the `review_status.json` file with this structure:
+
+```json
+{
+  "campaignId": "[existing campaign ID]",
+  "status": "review_completed",
+  "createdAt": "[existing timestamp]",
+  "lastModified": "[current timestamp]",
+  "totalAssets": "[existing count]",
+  "successfulAssets": "[existing count]",
+  "assetsGenerated": "[existing array]",
+  "claudeReviewed": true,
+  "complianceScore": "[average score across all assets]",
+  "reviewStarted": "[current timestamp]",
+  "reviewCompleted": "[current timestamp]",
+  "detailedFindings": {
+    "overallAssessment": "[PASS/CONDITIONAL_PASS/FAIL]",
+    "averageScore": "[numerical average]",
+    "assetScores": {
+      "[asset_filename]": {
+        "score": "[1-10]",
+        "brandCompliance": "[score/10]",
+        "contentAppropriateness": "[score/10]",
+        "visualQuality": "[score/10]",
+        "formatOptimization": "[score/10]",
+        "issues": ["[specific issue 1]", "[specific issue 2]"],
+        "recommendations": ["[specific recommendation 1]", "[specific recommendation 2]"]
+      }
+    },
+    "criticalIssues": ["[list any blocking issues]"],
+    "recommendations": ["[overall campaign-level recommendations]"],
+    "nextSteps": "[what should happen next]"
+  }
+}
+```
+
+## STEP 6: CREATE GMAIL DRAFT
+Create a Gmail draft with this structure:
+
+**Subject**: `Campaign Review Complete: [campaignId] - [PASS/CONDITIONAL_PASS/FAIL]`
+
+**Body**:
+```
+CAMPAIGN REVIEW SUMMARY
+Campaign ID: [campaignId]
+Review Completed: [timestamp]
+Overall Assessment: [PASS/CONDITIONAL_PASS/FAIL]
+
+EXECUTIVE SUMMARY:
+[2-3 sentence overview of findings]
+
+COMPLIANCE SCORES:
+Overall Average: [score]/10
+[List individual asset scores]
+
+DETAILED FINDINGS:
+[Summarize key issues and strengths]
+
+RECOMMENDATIONS:
+[Prioritized list of actions needed]
+
+NEXT STEPS:
+[Clear guidance on what should happen next]
+
+CAMPAIGN ASSETS REVIEWED:
+[List of all assets with their scores]
+
+---
+This review was generated automatically by the Content Engine AI Review System.
+For questions, contact the Creative Operations team.
+```
+
+**Recipients**: 
+- To: Creative Lead, Marketing Manager
+- CC: Creative Operations, Brand Compliance
+
+## STEP 7: QUEUE CLEANUP
+After completing the review and creating the Gmail draft:
+1. Remove the processed campaign path from `temp/review_queue.txt`
+2. If other campaigns remain in queue, mention how many are pending
+3. Log completion in `temp/review_log.txt`
+
+## ASSESSMENT GUIDELINES
+
+### PASS Criteria (Score 7+):
+- All brand guidelines followed
+- No prohibited content
+- Professional visual quality
+- Ready for deployment with minor or no changes
+
+### CONDITIONAL PASS Criteria (Score 5-6):
+- Minor brand compliance issues
+- Visual quality acceptable but could be improved  
+- Requires specific adjustments before deployment
+
+### FAIL Criteria (Score <5):
+- Major brand guideline violations
+- Prohibited content present
+- Poor visual quality
+- Requires significant rework before deployment
+
+## RESPONSE FORMAT
+Always end your response with:
+"✅ Review completed for [campaignId]. Gmail draft created. [X] campaigns remaining in queue."
+
+## ERROR HANDLING
+If any step fails:
+1. Document the error clearly
+2. Do not update review_status.json as completed
+3. Create Gmail draft noting the technical issue
+4. Keep campaign in queue for manual review
