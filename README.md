@@ -67,16 +67,23 @@ npm run dev
     {
       "name": "Creative Cloud Pro",
       "category": "design software",
-      "keyFeatures": ["AI-powered design tools", "collaborative workflows"]
+      "keyFeatures": ["AI-powered design tools", "collaborative workflows", "cloud sync", "premium templates"]
+    },
+    {
+      "name": "Adobe Premiere Pro",
+      "category": "video editing software", 
+      "keyFeatures": ["professional video editing", "motion graphics", "color grading", "multicam editing"]
     }
   ],
   "targetRegion": "North America",
-  "targetAudience": "creative professionals",
-  "campaignMessage": "Unleash your creative potential",
+  "targetAudience": "creative professionals and content creators",
+  "campaignMessage": "Unleash your creative potential with AI-powered tools",
   "brandGuidelines": {
-    "colors": ["#FF0000", "#000000", "#FFFFFF"],
+    "colors": ["#FF0000", "#000000", "#FFFFFF", "#0066CC"],
     "fonts": ["Adobe Clean", "Source Sans Pro"],
-    "tone": "professional yet inspiring"
+    "tone": "professional yet inspiring",
+    "prohibitedContent": ["competitor mentions", "outdated version screenshots", "profanity"],
+    "requiredElements": ["Adobe logo", "product logo", "© Adobe Systems"]
   }
 }
 ```
